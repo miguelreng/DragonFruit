@@ -7,10 +7,10 @@
 import { observer } from "mobx-react";
 
 // plane internal packages
-import { WEB_BASE_URL } from "@plane/constants";
-import { NewTabIcon } from "@plane/propel/icons";
-import { Tooltip } from "@plane/propel/tooltip";
-import { getFileURL } from "@plane/utils";
+import { WEB_BASE_URL } from "@dragonfruit/constants";
+import { NewTabIcon } from "@dragonfruit/propel/icons";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { getFileURL } from "@dragonfruit/utils";
 // hooks
 import { useWorkspace } from "@/hooks/store";
 

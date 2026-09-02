@@ -9,8 +9,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
 // plane utils
-import { useTranslation } from "@plane/i18n";
-import { cn } from "@plane/utils";
+import { useTranslation } from "@dragonfruit/i18n";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useSticky } from "@/hooks/use-stickies";
 // components

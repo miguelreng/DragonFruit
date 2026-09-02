@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { ArchiveRestoreIcon, FileOutput, FileText, LockKeyhole, LockKeyholeOpen } from "@/components/icons/lucide-shim";
 // constants
-import { EPageAccess, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { EPageAccess, EUserPermissions, EUserPermissionsLevel } from "@dragonfruit/constants";
 // plane editor
 import {
   LinkIcon,
@@ -21,11 +21,11 @@ import {
   GlobeIcon,
 } from "@/components/icons/propel-shim";
 // plane ui
-import type { TContextMenuItem } from "@plane/ui";
-import { ContextMenu, CustomMenu } from "@plane/ui";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import type { TContextMenuItem } from "@dragonfruit/ui";
+import { ContextMenu, CustomMenu } from "@dragonfruit/ui";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
 // components
-import { cn, copyUrlToClipboard } from "@plane/utils";
+import { cn, copyUrlToClipboard } from "@dragonfruit/utils";
 import { DeletePageModal } from "@/components/pages/modals/delete-page-modal";
 import { isBriefPage } from "@/components/project/brief/constants";
 import {

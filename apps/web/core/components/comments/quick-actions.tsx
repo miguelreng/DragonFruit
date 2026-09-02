@@ -8,14 +8,14 @@ import { useMemo } from "react";
 import { observer } from "mobx-react";
 import { MoreHorizontal } from "@/components/icons/lucide-shim";
 // plane imports
-import { EIssueCommentAccessSpecifier } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { IconButton } from "@plane/propel/icon-button";
+import { EIssueCommentAccessSpecifier } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 import { LinkIcon, GlobeIcon, LockIcon, EditIcon, TrashIcon } from "@/components/icons/propel-shim";
-import type { TIssueComment, TCommentsOperations } from "@plane/types";
-import type { TContextMenuItem } from "@plane/ui";
-import { CustomMenu } from "@plane/ui";
-import { cn } from "@plane/utils";
+import type { TIssueComment, TCommentsOperations } from "@dragonfruit/types";
+import type { TContextMenuItem } from "@dragonfruit/ui";
+import { CustomMenu } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useUser } from "@/hooks/store/user";
 

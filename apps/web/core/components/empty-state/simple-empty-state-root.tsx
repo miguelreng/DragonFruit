@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 // utils
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 import { EmptyStateIcon, type TEmptyStateIconName } from "./empty-state-icon";
 
 type EmptyStateSize = "sm" | "lg";

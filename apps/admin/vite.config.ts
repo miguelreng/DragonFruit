@@ -3,7 +3,7 @@ import * as dotenv from "dotenv";
 import { reactRouter } from "@react-router/dev/vite";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
-import { joinUrlPath } from "@plane/utils";
+import { joinUrlPath } from "@dragonfruit/utils";
 
 export default defineConfig(({ mode }) => {
   if (mode !== "production") {

@@ -7,12 +7,12 @@
 import React, { useState } from "react";
 import { observer } from "mobx-react";
 // types
-import { PROJECT_ERROR_MESSAGES } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TIssue } from "@plane/types";
+import { PROJECT_ERROR_MESSAGES } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TIssue } from "@dragonfruit/types";
 // ui
-import { AlertModalCore } from "@plane/ui";
+import { AlertModalCore } from "@dragonfruit/ui";
 // constants
 // hooks
 import { useProject } from "@/hooks/store/use-project";

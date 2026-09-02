@@ -6,10 +6,10 @@
 
 import { observer } from "mobx-react";
 // plane imports
-import { Tooltip } from "@plane/propel/tooltip";
-import { cn } from "@plane/propel/utils";
-import type { IFilterInstance } from "@plane/shared-state";
-import type { TExternalFilter, TFilterProperty, TSupportedOperators } from "@plane/types";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { cn } from "@dragonfruit/propel/utils";
+import type { IFilterInstance } from "@dragonfruit/shared-state";
+import type { TExternalFilter, TFilterProperty, TSupportedOperators } from "@dragonfruit/types";
 // local imports
 import { AddFilterDropdown } from "../add-filters/dropdown";
 import { COMMON_FILTER_ITEM_BORDER_CLASSNAME } from "../shared";

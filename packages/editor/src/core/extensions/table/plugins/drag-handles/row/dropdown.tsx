@@ -6,11 +6,11 @@
 
 import type { Editor } from "@tiptap/core";
 import { TableMap } from "@tiptap/pm/tables";
-import { ArrowDown, ArrowUp, ToggleRight } from "@plane/icons";
-import type { LucideIcon } from "@plane/icons";
+import { ArrowDown, ArrowUp, ToggleRight } from "@dragonfruit/icons";
+import type { LucideIcon } from "@dragonfruit/icons";
 // extensions
-import type { ISvgIcons } from "@plane/propel/icons";
-import { CopyIcon, TrashIcon, CloseIcon } from "@plane/propel/icons";
+import type { ISvgIcons } from "@dragonfruit/propel/icons";
+import { CopyIcon, TrashIcon, CloseIcon } from "@dragonfruit/propel/icons";
 import { findTable, getSelectedRows } from "@/extensions/table/table/utilities/helpers";
 // local imports
 import { duplicateRows } from "../actions";

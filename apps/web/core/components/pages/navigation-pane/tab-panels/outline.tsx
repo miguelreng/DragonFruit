@@ -5,7 +5,7 @@
  */
 
 // plane imports
-import { ScrollArea } from "@plane/propel/scrollarea";
+import { ScrollArea } from "@dragonfruit/propel/scrollarea";
 // plane web imports
 import { PageNavigationPaneOutlineTabEmptyState } from "@/plane-web/components/pages/navigation-pane/tab-panels/empty-states/outline";
 // store

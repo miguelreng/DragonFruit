@@ -5,9 +5,9 @@
  */
 
 // plane imports
-import { getPublicApiBaseUrl } from "@plane/constants";
+import { getPublicApiBaseUrl } from "@dragonfruit/constants";
 // local services
-import type { TFileEntityInfo, TFileSignedURLResponse } from "@plane/types";
+import type { TFileEntityInfo, TFileSignedURLResponse } from "@dragonfruit/types";
 import { FileUploadService } from "./file-upload.service";
 // helpers
 import { FileService } from "./file.service";

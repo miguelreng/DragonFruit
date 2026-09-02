@@ -6,7 +6,7 @@
 
 import { useTheme } from "next-themes";
 // plane imports
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 // components
 import { DetailedEmptyState } from "@/components/empty-state/detailed-empty-state-root";
 

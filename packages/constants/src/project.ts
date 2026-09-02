@@ -5,7 +5,7 @@
  */
 
 // plane imports
-import type { TProjectAppliedDisplayFilterKeys, TProjectOrderByOptions } from "@plane/types";
+import type { TProjectAppliedDisplayFilterKeys, TProjectOrderByOptions } from "@dragonfruit/types";
 // local imports
 
 export type TNetworkChoiceIconKey = "Lock" | "Globe2";

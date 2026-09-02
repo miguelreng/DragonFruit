@@ -22,9 +22,9 @@ import {
   Whiteboard,
 } from "@/components/icons/lucide-shim";
 import { DocumentText } from "@solar-icons/react/ssr";
-import { Logo } from "@plane/propel/emoji-icon-picker";
-import type { TPage, TPageType } from "@plane/types";
-import { cn, getEditorAssetInlineSrc, getPageName } from "@plane/utils";
+import { Logo } from "@dragonfruit/propel/emoji-icon-picker";
+import type { TPage, TPageType } from "@dragonfruit/types";
+import { cn, getEditorAssetInlineSrc, getPageName } from "@dragonfruit/utils";
 import {
   SHEET_DEFAULT_COL_WIDTH,
   cellId,

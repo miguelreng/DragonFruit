@@ -10,9 +10,9 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
 // plane imports
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { cn } from "@plane/utils";
+import { EUserPermissions, EUserPermissionsLevel } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { cn } from "@dragonfruit/utils";
 // components
 import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
 import { PageHead } from "@/components/core/page-title";

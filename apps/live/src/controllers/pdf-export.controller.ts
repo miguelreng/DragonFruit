@@ -6,8 +6,8 @@
 
 import type { Request, Response } from "express";
 import { Effect, Schema, Cause } from "effect";
-import { Controller, Post } from "@plane/decorators";
-import { logger } from "@plane/logger";
+import { Controller, Post } from "@dragonfruit/decorators";
+import { logger } from "@dragonfruit/logger";
 import { AppError } from "@/lib/errors";
 import { PdfExportRequestBody, PdfValidationError, PdfAuthenticationError } from "@/schema/pdf-export";
 import { PdfExportService, exportToPdf } from "@/services/pdf-export";

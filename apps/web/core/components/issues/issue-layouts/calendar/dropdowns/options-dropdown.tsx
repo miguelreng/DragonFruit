@@ -13,12 +13,12 @@ import { Popover, Transition } from "@headlessui/react";
 // hooks
 // ui
 // icons
-import type { TSupportedFilterTypeForUpdate } from "@plane/constants";
-import { EIssueFilterType } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import type { TSupportedFilterTypeForUpdate } from "@dragonfruit/constants";
+import { EIssueFilterType } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 import { CheckIcon, ChevronUpIcon } from "@/components/icons/propel-shim";
-import type { TCalendarLayouts, TSupportedFilterForUpdate } from "@plane/types";
-import { ToggleSwitch } from "@plane/ui";
+import type { TCalendarLayouts, TSupportedFilterForUpdate } from "@dragonfruit/types";
+import { ToggleSwitch } from "@dragonfruit/ui";
 // types
 // constants
 import { CALENDAR_LAYOUTS } from "@/constants/calendar";

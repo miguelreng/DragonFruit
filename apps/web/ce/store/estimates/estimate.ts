@@ -12,7 +12,7 @@ import type {
   IEstimate as IEstimateType,
   IEstimatePoint as IEstimatePointType,
   TEstimateSystemKeys,
-} from "@plane/types";
+} from "@dragonfruit/types";
 // plane web services
 import estimateService from "@/services/estimate.service";
 // store

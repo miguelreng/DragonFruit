@@ -6,8 +6,8 @@
 
 import { useCallback } from "react";
 // plane imports
-import type { TFileHandler } from "@plane/editor";
-import { getEditorAssetDownloadSrc, getEditorAssetSrc } from "@plane/utils";
+import type { TFileHandler } from "@dragonfruit/editor";
+import { getEditorAssetDownloadSrc, getEditorAssetSrc } from "@dragonfruit/utils";
 // hooks
 import { useEditorAsset } from "@/hooks/store/use-editor-asset";
 // plane web hooks

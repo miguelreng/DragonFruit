@@ -9,12 +9,12 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { Link } from "react-router";
 // plane imports
-import { fetchWikipediaSummary } from "@plane/editor";
-import type { TCallbackMentionComponentProps, TWikipediaSummary } from "@plane/editor";
-import { Logo } from "@plane/propel/emoji-icon-picker";
-import { Popover } from "@plane/propel/popover";
-import type { TPage } from "@plane/types";
-import { cn } from "@plane/utils";
+import { fetchWikipediaSummary } from "@dragonfruit/editor";
+import type { TCallbackMentionComponentProps, TWikipediaSummary } from "@dragonfruit/editor";
+import { Logo } from "@dragonfruit/propel/emoji-icon-picker";
+import { Popover } from "@dragonfruit/propel/popover";
+import type { TPage } from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 // components
 import { Calendar, Whiteboard } from "@/components/icons/lucide-shim";
 import { PageIcon } from "@/components/icons/propel-shim";
@@ -193,7 +193,7 @@ const EditorCalendarMention = observer(function EditorCalendarMention(props: { p
  *
  * On hover it fetches the article summary (title, extract, thumbnail) via the
  * Wikipedia REST API and shows a popover card, reusing the same
- * `@plane/propel/popover` primitive used by EditorUserMention.
+ * `@dragonfruit/propel/popover` primitive used by EditorUserMention.
  *
  * The popover is controlled via open/onOpenChange to enable hover-to-open
  * behaviour without relying on non-standard Popover props.

@@ -1,5 +1,5 @@
-import { Avatar } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { Avatar } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 import type { HocuspocusProvider } from "@hocuspocus/provider";
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";

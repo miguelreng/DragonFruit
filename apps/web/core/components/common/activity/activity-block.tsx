@@ -7,11 +7,11 @@
 import type { FC, ReactNode } from "react";
 import { Network } from "@/components/icons/lucide-shim";
 // types
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TWorkspaceBaseActivity } from "@plane/types";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TWorkspaceBaseActivity } from "@dragonfruit/types";
 // ui
 // helpers
-import { renderFormattedTime, renderFormattedDate, calculateTimeAgo } from "@plane/utils";
+import { renderFormattedTime, renderFormattedDate, calculateTimeAgo } from "@dragonfruit/utils";
 // hooks
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // local components

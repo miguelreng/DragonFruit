@@ -10,10 +10,10 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import type { TPageVersion } from "@plane/types";
-import { Avatar } from "@plane/ui";
-import { cn, getFileURL, renderFormattedDate, renderFormattedTime } from "@plane/utils";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { TPageVersion } from "@dragonfruit/types";
+import { Avatar } from "@dragonfruit/ui";
+import { cn, getFileURL, renderFormattedDate, renderFormattedTime } from "@dragonfruit/utils";
 // components
 import type { TPageRootHandlers } from "@/components/pages/editor/page-root";
 // hooks

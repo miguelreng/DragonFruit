@@ -8,7 +8,7 @@ import { Collapse } from "@/components/common/collapse";
 import React, { useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { STATE_GROUPS } from "@plane/constants";
+import { STATE_GROUPS } from "@dragonfruit/constants";
 import { StateGroupIcon } from "@/components/icons/propel-shim";
 // components
 import { FilterHeader, FilterOption } from "@/components/issues/issue-layouts/filters";

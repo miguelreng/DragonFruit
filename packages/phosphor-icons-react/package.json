@@ -12,7 +12,7 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
-    "@plane/icons": "workspace:*",
+    "@dragonfruit/icons": "workspace:*",
     "react": "catalog:"
   }
 }

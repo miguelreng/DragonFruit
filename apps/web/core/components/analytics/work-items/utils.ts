@@ -5,8 +5,8 @@
  */
 
 // plane package imports
-import type { ChartYAxisMetric, IState } from "@plane/types";
-import { ChartXAxisProperty } from "@plane/types";
+import type { ChartYAxisMetric, IState } from "@dragonfruit/types";
+import { ChartXAxisProperty } from "@dragonfruit/types";
 
 interface ParamsProps {
   x_axis: ChartXAxisProperty;

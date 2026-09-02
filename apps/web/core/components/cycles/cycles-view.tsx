@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 // components
 import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 // components
 import { CyclesList } from "@/components/cycles/list";
 import { CycleModuleListLayoutLoader } from "@/components/ui/loader/cycle-module-list-loader";

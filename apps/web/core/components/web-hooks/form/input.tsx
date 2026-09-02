@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { useTranslation } from "@plane/i18n";
-import { Input } from "@plane/ui";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Input } from "@dragonfruit/ui";
 
 type Props = {
   value: string;

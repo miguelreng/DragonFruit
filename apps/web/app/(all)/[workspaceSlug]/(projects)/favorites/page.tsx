@@ -6,9 +6,9 @@
 
 import { useEffect } from "react";
 import { observer } from "mobx-react";
-import { useTranslation } from "@plane/i18n";
-import { useLocalStorage } from "@plane/hooks";
-import { IS_FAVORITE_MENU_OPEN } from "@plane/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { useLocalStorage } from "@dragonfruit/hooks";
+import { IS_FAVORITE_MENU_OPEN } from "@dragonfruit/constants";
 import { ContentWrapper } from "@/components/core/content-wrapper";
 import { PageHead } from "@/components/core/page-title";
 import { useWorkspace } from "@/hooks/store/use-workspace";

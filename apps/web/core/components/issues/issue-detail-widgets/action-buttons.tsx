@@ -6,9 +6,9 @@
 
 import React from "react";
 import { Attachment, GitBranch, Link } from "@/components/icons/lucide-shim";
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 // plane imports
-import type { TIssueServiceType, TWorkItemWidgets } from "@plane/types";
+import type { TIssueServiceType, TWorkItemWidgets } from "@dragonfruit/types";
 // plane web imports
 import { WorkItemAdditionalWidgetActionButtons } from "@/plane-web/components/issues/issue-detail-widgets/action-buttons";
 // local imports

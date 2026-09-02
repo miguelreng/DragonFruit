@@ -7,16 +7,16 @@
 import { observer } from "mobx-react";
 import { ListFilter } from "@/components/icons/lucide-shim";
 // plane imports
-import type { ENotificationFilterType } from "@plane/constants";
-import { FILTER_TYPE_OPTIONS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { Tooltip } from "@plane/propel/tooltip";
-import { PopoverMenu } from "@plane/ui";
+import type { ENotificationFilterType } from "@dragonfruit/constants";
+import { FILTER_TYPE_OPTIONS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { PopoverMenu } from "@dragonfruit/ui";
 // hooks
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // local imports
 import { NotificationFilterOptionItem } from "./menu-option-item";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 export const NotificationFilter = observer(function NotificationFilter() {
   // hooks

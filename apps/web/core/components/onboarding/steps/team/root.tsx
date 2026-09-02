@@ -19,15 +19,15 @@ import { usePopper } from "react-popper";
 import { XCircle } from "@/components/icons/lucide-shim";
 import { Listbox } from "@headlessui/react";
 // plane imports
-import type { EUserPermissions } from "@plane/constants";
-import { ROLE, ROLE_DETAILS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
+import type { EUserPermissions } from "@dragonfruit/constants";
+import { ROLE, ROLE_DETAILS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
 import { PlusIcon, CheckIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { EOnboardingSteps } from "@plane/types";
-import { Input } from "@plane/ui";
-import { Spinner } from "@plane/propel/spinners";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { EOnboardingSteps } from "@dragonfruit/types";
+import { Input } from "@dragonfruit/ui";
+import { Spinner } from "@dragonfruit/propel/spinners";
 // hooks
 import { useWorkspace } from "@/hooks/store/use-workspace";
 // services

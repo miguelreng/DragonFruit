@@ -7,8 +7,8 @@
 import React, { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 // plane package imports
-import { ModalPortal, EPortalWidth, EPortalPosition } from "@plane/propel/portal";
-import type { ICycle, IModule, IProject } from "@plane/types";
+import { ModalPortal, EPortalWidth, EPortalPosition } from "@dragonfruit/propel/portal";
+import type { ICycle, IModule, IProject } from "@dragonfruit/types";
 import { useAnalytics } from "@/hooks/store/use-analytics";
 // plane web components
 import { WorkItemsModalMainContent } from "./content";

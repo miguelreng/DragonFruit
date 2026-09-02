@@ -7,11 +7,11 @@
 import { useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 // plane types
-import { useTranslation } from "@plane/i18n";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { InstructionType, TSticky } from "@plane/types";
+import { useTranslation } from "@dragonfruit/i18n";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { InstructionType, TSticky } from "@dragonfruit/types";
 // plane utils
-import { isCommentEmpty } from "@plane/utils";
+import { isCommentEmpty } from "@dragonfruit/utils";
 // components
 import { STICKY_COLORS_LIST } from "@/components/editor/sticky-editor/color-palette";
 // hooks

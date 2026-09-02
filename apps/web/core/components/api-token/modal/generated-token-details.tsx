@@ -4,14 +4,14 @@
  * See the LICENSE file for details.
  */
 
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
 import { CopyIcon } from "@/components/icons/propel-shim";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { IApiToken } from "@plane/types";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { IApiToken } from "@dragonfruit/types";
 // ui
-import { renderFormattedDate, renderFormattedTime, copyTextToClipboard } from "@plane/utils";
+import { renderFormattedDate, renderFormattedTime, copyTextToClipboard } from "@dragonfruit/utils";
 // helpers
 // types
 import { usePlatformOS } from "@/hooks/use-platform-os";

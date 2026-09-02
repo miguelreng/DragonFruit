@@ -9,14 +9,14 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { Earth } from "@/components/icons/lucide-shim";
 // plane imports
-import { EUserPermissions, EUserPermissionsLevel, IS_FAVORITE_MENU_OPEN } from "@plane/constants";
-import { useLocalStorage } from "@plane/hooks";
+import { EUserPermissions, EUserPermissionsLevel, IS_FAVORITE_MENU_OPEN } from "@dragonfruit/constants";
+import { useLocalStorage } from "@dragonfruit/hooks";
 import { LockIcon } from "@/components/icons/propel-shim";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { IProjectView } from "@plane/types";
-import { EViewAccess } from "@plane/types";
-import { FavoriteStar } from "@plane/ui";
-import { getPublishViewLink } from "@plane/utils";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { IProjectView } from "@dragonfruit/types";
+import { EViewAccess } from "@dragonfruit/types";
+import { FavoriteStar } from "@dragonfruit/ui";
+import { getPublishViewLink } from "@dragonfruit/utils";
 // hooks
 import { useMember } from "@/hooks/store/use-member";
 import { useProjectView } from "@/hooks/store/use-project-view";

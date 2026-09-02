@@ -13,7 +13,7 @@ import type {
   TFilterGroupNode,
   TFilterProperty,
   TFilterValue,
-} from "@plane/types";
+} from "@dragonfruit/types";
 // local imports
 import { isConditionNode, isGroupNode } from "../../types/core";
 import { getGroupChildren } from "../../types/shared";

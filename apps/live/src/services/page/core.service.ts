@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { logger } from "@plane/logger";
-import type { TDocumentPayload, TPage } from "@plane/types";
+import { logger } from "@dragonfruit/logger";
+import type { TDocumentPayload, TPage } from "@dragonfruit/types";
 // services
 import { AppError } from "@/lib/errors";
 import { APIService } from "../api.service";

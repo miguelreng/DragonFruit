@@ -10,10 +10,10 @@ import Link from "next/link";
 
 import { Edit as EditIcon, X as CloseIcon } from "@/components/icons/lucide-shim";
 // DragonFruit
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { ISearchIssueResponse } from "@plane/types";
-import { cn, generateWorkItemLink } from "@plane/utils";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { ISearchIssueResponse } from "@dragonfruit/types";
+import { cn, generateWorkItemLink } from "@dragonfruit/utils";
 // components
 import { ExistingIssuesListModal } from "@/components/core/modals/existing-issues-list-modal";
 // hooks

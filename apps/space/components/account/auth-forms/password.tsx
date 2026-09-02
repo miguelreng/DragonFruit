@@ -8,12 +8,12 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { Eye, EyeClosed as EyeOff, CloseCircle as XCircle } from "@solar-icons/react/ssr";
 // plane imports
-import { API_BASE_URL, E_PASSWORD_STRENGTH } from "@plane/constants";
-import { Button } from "@plane/propel/button";
-import { AuthService } from "@plane/services";
-import { Input, PasswordStrengthIndicator } from "@plane/ui";
-import { Spinner } from "@plane/propel/spinners";
-import { getPasswordStrength } from "@plane/utils";
+import { API_BASE_URL, E_PASSWORD_STRENGTH } from "@dragonfruit/constants";
+import { Button } from "@dragonfruit/propel/button";
+import { AuthService } from "@dragonfruit/services";
+import { Input, PasswordStrengthIndicator } from "@dragonfruit/ui";
+import { Spinner } from "@dragonfruit/propel/spinners";
+import { getPasswordStrength } from "@dragonfruit/utils";
 // types
 import { EAuthModes, EAuthSteps } from "@/types/auth";
 

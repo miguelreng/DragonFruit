@@ -8,8 +8,8 @@ import { isEmpty, set } from "lodash-es";
 import { action, computed, makeObservable, observable, runInAction } from "mobx";
 import { computedFn } from "mobx-utils";
 // DragonFruit Imports
-import type { TSupportedFilterTypeForUpdate } from "@plane/constants";
-import { EIssueFilterType } from "@plane/constants";
+import type { TSupportedFilterTypeForUpdate } from "@dragonfruit/constants";
+import { EIssueFilterType } from "@dragonfruit/constants";
 import type {
   IIssueDisplayFilterOptions,
   IIssueDisplayProperties,
@@ -19,9 +19,9 @@ import type {
   IssuePaginationOptions,
   TWorkItemFilterExpression,
   TSupportedFilterForUpdate,
-} from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
-import { handleIssueQueryParamsByLayout } from "@plane/utils";
+} from "@dragonfruit/types";
+import { EIssuesStoreType } from "@dragonfruit/types";
+import { handleIssueQueryParamsByLayout } from "@dragonfruit/utils";
 // services
 import { IssueFiltersService } from "@/services/issue_filter.service";
 // helpers

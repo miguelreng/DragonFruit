@@ -7,10 +7,10 @@ import { Collapse } from "@/components/common/collapse";
 
 import { useState } from "react";
 import { observer } from "mobx-react";
-import { EIconSize } from "@plane/constants";
+import { EIconSize } from "@dragonfruit/constants";
 import { StateGroupIcon } from "@/components/icons/propel-shim";
-import type { IState } from "@plane/types";
-import { Loader } from "@plane/ui";
+import type { IState } from "@dragonfruit/types";
+import { Loader } from "@dragonfruit/ui";
 // components
 import { FilterHeader, FilterOption } from "@/components/issues/issue-layouts/filters";
 // hooks

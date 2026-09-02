@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 // plane imports
 import { StateGroupIcon } from "@/components/icons/propel-shim";
-import type { TStateGroups } from "@plane/types";
+import type { TStateGroups } from "@dragonfruit/types";
 // components
 import { SingleProgressStats } from "@/components/core/sidebar/single-progress-stats";
 

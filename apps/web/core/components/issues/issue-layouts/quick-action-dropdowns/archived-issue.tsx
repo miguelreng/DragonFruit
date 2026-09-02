@@ -8,10 +8,10 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // ui
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { EIssuesStoreType } from "@plane/types";
-import { ContextMenu, CustomMenu } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { EUserPermissions, EUserPermissionsLevel } from "@dragonfruit/constants";
+import { EIssuesStoreType } from "@dragonfruit/types";
+import { ContextMenu, CustomMenu } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
 import { useUserPermissions } from "@/hooks/store/user";

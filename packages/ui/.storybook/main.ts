@@ -19,7 +19,7 @@ function getAbsolutePath(value: string): any {
 /**
  * The single component catalog for DragonFruit.
  *
- * It lives in @plane/ui rather than @plane/propel because ui already depends on
+ * It lives in @dragonfruit/ui rather than @dragonfruit/propel because ui already depends on
  * propel, so this is the only package that can render BOTH layers live. Adding
  * the reverse dependency would make the workspace build graph cyclic.
  */
@@ -38,7 +38,7 @@ const config: StorybookConfig = {
   },
   staticDirs: [{ from: "../../../branding", to: "/branding" }],
   /**
-   * @plane/constants reads `process.env` at module scope. The app bundlers define
+   * @dragonfruit/constants reads `process.env` at module scope. The app bundlers define
    * it; Storybook's browser build does not, so shim it or every story that pulls
    * in a ui component dies on `process is not defined`.
    */

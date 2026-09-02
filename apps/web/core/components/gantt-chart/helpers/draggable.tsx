@@ -8,9 +8,9 @@ import type { RefObject } from "react";
 import React from "react";
 import { observer } from "mobx-react";
 // hooks
-import type { IGanttBlock } from "@plane/types";
+import type { IGanttBlock } from "@dragonfruit/types";
 // helpers
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 //  DragonFruit-web
 import { LeftDependencyDraggable, RightDependencyDraggable } from "@/plane-web/components/gantt-chart";
 //

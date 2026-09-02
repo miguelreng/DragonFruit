@@ -8,8 +8,8 @@ import { observer } from "mobx-react";
 import Link from "next/link";
 import { useTheme as useNextTheme } from "next-themes";
 // ui
-import { Button, getButtonStyling } from "@plane/propel/button";
-import { resolveGeneralTheme } from "@plane/utils";
+import { Button, getButtonStyling } from "@dragonfruit/propel/button";
+import { resolveGeneralTheme } from "@dragonfruit/utils";
 // hooks
 import TakeoffIconDark from "@/app/assets/logos/takeoff-icon-dark.svg?url";
 import TakeoffIconLight from "@/app/assets/logos/takeoff-icon-light.svg?url";

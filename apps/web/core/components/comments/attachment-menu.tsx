@@ -7,11 +7,11 @@
 import { useRef, useState } from "react";
 import type { RefObject } from "react";
 import { v4 as uuidv4 } from "uuid";
-import type { EditorRefApi } from "@plane/editor";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TCommentsOperations } from "@plane/types";
-import { CustomMenu } from "@plane/ui";
-import { cn } from "@plane/utils";
+import type { EditorRefApi } from "@dragonfruit/editor";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TCommentsOperations } from "@dragonfruit/types";
+import { CustomMenu } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 import {
   AtSign,
   Box,

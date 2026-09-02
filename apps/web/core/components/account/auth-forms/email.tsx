@@ -10,13 +10,13 @@ import { observer } from "mobx-react";
 // icons
 import { CircleAlert, XCircle } from "@/components/icons/lucide-shim";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import type { IEmailCheckData } from "@plane/types";
-import { Input } from "@plane/ui";
-import { Spinner } from "@plane/propel/spinners";
-import { cn, checkEmailValidity } from "@plane/utils";
-import { IconButton } from "@plane/propel/icon-button";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import type { IEmailCheckData } from "@dragonfruit/types";
+import { Input } from "@dragonfruit/ui";
+import { Spinner } from "@dragonfruit/propel/spinners";
+import { cn, checkEmailValidity } from "@dragonfruit/utils";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 // helpers
 type TAuthEmailForm = {
   defaultEmail: string;

@@ -7,10 +7,10 @@
 import { Command } from "cmdk";
 import { observer } from "mobx-react";
 // plane imports
-import { MODULE_STATUS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { MODULE_STATUS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 import { ModuleStatusIcon } from "@/components/icons/propel-shim";
-import type { TModuleStatus } from "@plane/types";
+import type { TModuleStatus } from "@dragonfruit/types";
 // local imports
 import { PowerKModalCommandItem } from "../../../modal/command-item";
 

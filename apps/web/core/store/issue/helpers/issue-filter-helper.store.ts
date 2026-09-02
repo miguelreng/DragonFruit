@@ -6,12 +6,12 @@
 
 import { isEmpty } from "lodash-es";
 // plane constants
-import type { EIssueFilterType } from "@plane/constants";
+import type { EIssueFilterType } from "@dragonfruit/constants";
 import {
   EIssueGroupByToServerOptions,
   EServerGroupByToFilterOptions,
   ENABLE_ISSUE_DEPENDENCIES,
-} from "@plane/constants";
+} from "@dragonfruit/constants";
 import type {
   EIssuesStoreType,
   IIssueDisplayFilterOptions,
@@ -23,10 +23,10 @@ import type {
   TIssueKanbanFilters,
   TIssueParams,
   TWorkItemFilterExpression,
-} from "@plane/types";
-import { EIssueLayoutTypes } from "@plane/types";
+} from "@dragonfruit/types";
+import { EIssueLayoutTypes } from "@dragonfruit/types";
 // helpers
-import { getComputedDisplayFilters, getComputedDisplayProperties } from "@plane/utils";
+import { getComputedDisplayFilters, getComputedDisplayProperties } from "@dragonfruit/utils";
 // lib
 import { storage } from "@/lib/local-storage";
 import { getEnabledDisplayFilters } from "@/plane-web/store/issue/helpers/filter-utils";

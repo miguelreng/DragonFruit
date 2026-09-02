@@ -8,9 +8,9 @@ import React, { useRef } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane constants
-import { SPREADSHEET_SELECT_GROUP, SPREADSHEET_PROPERTY_LIST } from "@plane/constants";
+import { SPREADSHEET_SELECT_GROUP, SPREADSHEET_PROPERTY_LIST } from "@dragonfruit/constants";
 // types
-import type { TIssue, IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@plane/types";
+import type { TIssue, IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@dragonfruit/types";
 // components
 import { MultipleSelectGroup } from "@/components/core/multiple-select";
 // hooks

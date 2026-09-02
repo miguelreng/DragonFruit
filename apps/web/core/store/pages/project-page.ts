@@ -7,8 +7,8 @@
 import { computed, makeObservable } from "mobx";
 import { computedFn } from "mobx-utils";
 // constants
-import { EPageAccess, EUserPermissions } from "@plane/constants";
-import type { TPage } from "@plane/types";
+import { EPageAccess, EUserPermissions } from "@dragonfruit/constants";
+import type { TPage } from "@dragonfruit/types";
 // plane web store
 import type { RootStore } from "@/plane-web/store/root.store";
 import { isBriefPage } from "@/components/project/brief/constants";

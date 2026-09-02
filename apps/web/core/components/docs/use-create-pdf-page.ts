@@ -5,9 +5,9 @@
  */
 
 import { useCallback, useState } from "react";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { EPageAccess } from "@plane/constants";
-import { EFileAssetType, type TPage } from "@plane/types";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { EPageAccess } from "@dragonfruit/constants";
+import { EFileAssetType, type TPage } from "@dragonfruit/types";
 import { useEditorAsset } from "@/hooks/store/use-editor-asset";
 import { ProjectPageService } from "@/services/page/project-page.service";
 

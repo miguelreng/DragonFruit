@@ -9,11 +9,11 @@ import { observer } from "mobx-react";
 import { Loader } from "@/components/icons/lucide-shim";
 import { CloseIcon } from "@/components/icons/propel-shim";
 // plane imports
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { IState, TStateOperationsCallbacks } from "@plane/types";
-import { AlertModalCore } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { IState, TStateOperationsCallbacks } from "@dragonfruit/types";
+import { AlertModalCore } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { usePlatformOS } from "@/hooks/use-platform-os";
 

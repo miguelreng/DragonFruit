@@ -6,12 +6,12 @@
 
 import React from "react";
 import { observer } from "mobx-react";
-import { MODULE_STATUS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { MODULE_STATUS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 import type { TModuleStatus } from "@/components/icons/propel-shim";
 import { ModuleStatusIcon } from "@/components/icons/propel-shim";
-import type { IModule } from "@plane/types";
-import { CustomSelect } from "@plane/ui";
+import type { IModule } from "@dragonfruit/types";
+import { CustomSelect } from "@dragonfruit/ui";
 
 type Props = {
   isDisabled: boolean;

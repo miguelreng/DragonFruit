@@ -8,9 +8,9 @@ import { Collapse } from "@/components/common/collapse";
 import React, { useState } from "react";
 import { observer } from "mobx-react";
 // constants
-import { DATE_AFTER_FILTER_OPTIONS } from "@plane/constants";
+import { DATE_AFTER_FILTER_OPTIONS } from "@dragonfruit/constants";
 // components
-import { isInDateFormat } from "@plane/utils";
+import { isInDateFormat } from "@dragonfruit/utils";
 import { DateFilterModal } from "@/components/core/filters/date-filter-modal";
 import { FilterHeader, FilterOption } from "@/components/issues/issue-layouts/filters";
 

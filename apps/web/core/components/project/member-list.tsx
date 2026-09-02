@@ -7,9 +7,9 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { EUserPermissions, EUserPermissionsLevel, MEMBER_TRACKER_ELEMENTS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
+import { EUserPermissions, EUserPermissionsLevel, MEMBER_TRACKER_ELEMENTS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
 import { SearchIcon } from "@/components/icons/propel-shim";
 // components
 import { MembersSettingsLoader } from "@/components/ui/loader/settings/members";

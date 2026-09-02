@@ -12,11 +12,11 @@ import { usePopper } from "react-popper";
 import { Logout as LogOut } from "@solar-icons/react/ssr";
 import { Popover, Transition } from "@headlessui/react";
 // plane imports
-import { API_BASE_URL } from "@plane/constants";
-import { Button } from "@plane/propel/button";
-import { AuthService } from "@plane/services";
-import { Avatar } from "@plane/ui";
-import { getFileURL } from "@plane/utils";
+import { API_BASE_URL } from "@dragonfruit/constants";
+import { Button } from "@dragonfruit/propel/button";
+import { AuthService } from "@dragonfruit/services";
+import { Avatar } from "@dragonfruit/ui";
+import { getFileURL } from "@dragonfruit/utils";
 // helpers
 import { queryParamGenerator } from "@/helpers/query-param-generator";
 // hooks

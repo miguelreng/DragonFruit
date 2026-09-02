@@ -5,11 +5,11 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import type { IProjectCustomField, TCustomFieldType } from "@plane/types";
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { CustomSelect, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
+import type { IProjectCustomField, TCustomFieldType } from "@dragonfruit/types";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { CustomSelect, EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
 import { ProjectCustomFieldService } from "@/services/project";
 
 const customFieldService = new ProjectCustomFieldService();

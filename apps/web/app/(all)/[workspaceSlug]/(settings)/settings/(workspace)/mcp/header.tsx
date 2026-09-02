@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Breadcrumbs } from "@plane/ui";
+import { Breadcrumbs } from "@dragonfruit/ui";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { SettingsPageHeader } from "@/components/settings/page-header";
 import { WORKSPACE_SETTINGS_ICONS } from "@/components/settings/workspace/sidebar/item-icon";

@@ -8,12 +8,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { ListFilter } from "@/components/icons/lucide-shim";
 // plane imports
-import { useOutsideClickDetector } from "@plane/hooks";
-import { IconButton } from "@plane/propel/icon-button";
-import { useTranslation } from "@plane/i18n";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
+import { IconButton } from "@dragonfruit/propel/icon-button";
+import { useTranslation } from "@dragonfruit/i18n";
 import { SearchIcon, CloseIcon } from "@/components/icons/propel-shim";
-import type { TCycleFilters } from "@plane/types";
-import { cn, calculateTotalFilters } from "@plane/utils";
+import type { TCycleFilters } from "@dragonfruit/types";
+import { cn, calculateTotalFilters } from "@dragonfruit/utils";
 // components
 import { FiltersDropdown } from "@/components/issues/issue-layouts/filters";
 // hooks

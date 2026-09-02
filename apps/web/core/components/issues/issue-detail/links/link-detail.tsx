@@ -5,9 +5,9 @@
  */
 
 import { Edit as EditIcon, ExternalLink as NewTabIcon, Trash as TrashIcon } from "@/components/icons/lucide-shim";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import { getIconForLink, copyTextToClipboard, calculateTimeAgo } from "@plane/utils";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { getIconForLink, copyTextToClipboard, calculateTimeAgo } from "@dragonfruit/utils";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useMember } from "@/hooks/store/use-member";

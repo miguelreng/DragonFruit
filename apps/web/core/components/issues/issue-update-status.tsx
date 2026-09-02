@@ -8,7 +8,7 @@ import React from "react";
 import { observer } from "mobx-react";
 import { RefreshCw } from "@/components/icons/lucide-shim";
 // types
-import type { TNameDescriptionLoader } from "@plane/types";
+import type { TNameDescriptionLoader } from "@dragonfruit/types";
 
 type Props = {
   isSubmitting: TNameDescriptionLoader;

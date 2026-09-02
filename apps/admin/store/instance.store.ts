@@ -7,9 +7,9 @@
 import { set } from "lodash-es";
 import { observable, action, computed, makeObservable, runInAction } from "mobx";
 // plane internal packages
-import type { TInstanceStatus } from "@plane/constants";
-import { EInstanceStatus } from "@plane/constants";
-import { InstanceService } from "@plane/services";
+import type { TInstanceStatus } from "@dragonfruit/constants";
+import { EInstanceStatus } from "@dragonfruit/constants";
+import { InstanceService } from "@dragonfruit/services";
 import type {
   IInstance,
   IInstanceAdmin,
@@ -17,7 +17,7 @@ import type {
   IFormattedInstanceConfiguration,
   IInstanceInfo,
   IInstanceConfig,
-} from "@plane/types";
+} from "@dragonfruit/types";
 // root store
 import type { RootStore } from "@/store/root.store";
 

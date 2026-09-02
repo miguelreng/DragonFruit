@@ -8,12 +8,12 @@ import { useState, useEffect } from "react";
 import { observer } from "mobx-react";
 import { useRouter } from "next/navigation";
 // plane package imports
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { EmptyStateDetailed } from "@plane/propel/empty-state";
-import { Tabs } from "@plane/propel/tabs";
+import { EUserPermissions, EUserPermissionsLevel } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { EmptyStateDetailed } from "@dragonfruit/propel/empty-state";
+import { Tabs } from "@dragonfruit/propel/tabs";
 // components
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 import AnalyticsFilterActions from "@/components/analytics/analytics-filter-actions";
 import { PageHead } from "@/components/core/page-title";
 // hooks

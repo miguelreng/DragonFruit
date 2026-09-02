@@ -9,8 +9,8 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
 // plane imports
-import { ISSUE_DISPLAY_FILTERS_BY_PAGE } from "@plane/constants";
-import { EIssuesStoreType } from "@plane/types";
+import { ISSUE_DISPLAY_FILTERS_BY_PAGE } from "@dragonfruit/constants";
+import { EIssuesStoreType } from "@dragonfruit/types";
 // components
 import { ProjectLevelWorkItemFiltersHOC } from "@/components/work-item-filters/filters-hoc/project-level";
 // hooks

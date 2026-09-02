@@ -6,10 +6,10 @@
 
 import { FileText, FolderPlus, Layers, SquarePlus } from "@/components/icons/lucide-shim";
 // plane imports
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { EUserPermissions, EUserPermissionsLevel } from "@dragonfruit/constants";
 import { ContrastIcon, DiceIcon, LayersIcon } from "@/components/icons/propel-shim";
 // components
-import { EUserProjectRoles } from "@plane/types";
+import { EUserProjectRoles } from "@dragonfruit/types";
 import type { TPowerKCommandConfig, TPowerKContext } from "@/components/power-k/core/types";
 // hooks
 import { useCommandPalette } from "@/hooks/store/use-command-palette";

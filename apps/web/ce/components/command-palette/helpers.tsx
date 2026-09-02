@@ -13,8 +13,8 @@ import type {
   IWorkspacePageSearchResult,
   IWorkspaceProjectSearchResult,
   IWorkspaceSearchResult,
-} from "@plane/types";
-import { generateWorkItemLink } from "@plane/utils";
+} from "@dragonfruit/types";
+import { generateWorkItemLink } from "@dragonfruit/utils";
 // plane web components
 import { IssueIdentifier } from "@/plane-web/components/issues/issue-details/issue-identifier";
 

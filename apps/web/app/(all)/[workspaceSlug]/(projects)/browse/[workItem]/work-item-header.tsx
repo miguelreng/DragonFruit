@@ -9,10 +9,10 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane ui
 import { WorkItemsIcon } from "@/components/icons/propel-shim";
-import { getIconButtonStyling } from "@plane/propel/icon-button";
-import { Tooltip } from "@plane/propel/tooltip";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Breadcrumbs, FavoriteStar, Header } from "@plane/ui";
+import { getIconButtonStyling } from "@dragonfruit/propel/icon-button";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Breadcrumbs, FavoriteStar, Header } from "@dragonfruit/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { IssueDetailQuickActions } from "@/components/issues/issue-detail/issue-detail-quick-actions";

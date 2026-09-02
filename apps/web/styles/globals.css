@@ -1,11 +1,11 @@
-@import "@plane/tailwind-config/index.css";
-@import "@plane/editor/styles";
-@import "@plane/propel/styles/react-day-picker.css";
+@import "@dragonfruit/tailwind-config/index.css";
+@import "@dragonfruit/editor/styles";
+@import "@dragonfruit/propel/styles/react-day-picker.css";
 @import "./power-k.css";
 @import "./emoji.css";
 @plugin "@tailwindcss/typography";
 
-/* The editor styles ship from @plane/editor's prebuilt dist, where the pending
+/* The editor styles ship from @dragonfruit/editor's prebuilt dist, where the pending
    Atlas-proposal text color was near-white — unreadable on the light-mode tint
    background. Override it here (web loads after the editor css) with the
    theme-aware readable color. Dark mode keeps its own (working) value via the

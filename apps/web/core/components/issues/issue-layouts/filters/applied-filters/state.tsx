@@ -7,9 +7,9 @@
 import { observer } from "mobx-react";
 // icons
 // plane imports
-import { EIconSize } from "@plane/constants";
+import { EIconSize } from "@dragonfruit/constants";
 import { CloseIcon, StateGroupIcon } from "@/components/icons/propel-shim";
-import type { IState } from "@plane/types";
+import type { IState } from "@dragonfruit/types";
 
 type Props = {
   handleRemove: (val: string) => void;

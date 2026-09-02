@@ -5,8 +5,8 @@
  */
 
 // plane imports
-import { API_BASE_URL } from "@plane/constants";
-import type { TDescriptionVersionsListResponse, TDescriptionVersionDetails } from "@plane/types";
+import { API_BASE_URL } from "@dragonfruit/constants";
+import type { TDescriptionVersionsListResponse, TDescriptionVersionDetails } from "@dragonfruit/types";
 // helpers
 // services
 import { APIService } from "@/services/api.service";

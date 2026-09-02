@@ -7,7 +7,7 @@
 import React from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
-import { Tooltip } from "@plane/propel/tooltip";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 

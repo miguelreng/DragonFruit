@@ -10,12 +10,12 @@ import { observer } from "mobx-react";
 import { usePopper } from "react-popper";
 import { Combobox } from "@headlessui/react";
 // plane imports
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { SearchIcon, IntakeStateGroupIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
-import type { IIntakeState } from "@plane/types";
-import { ComboDropDown } from "@plane/ui";
-import { Spinner } from "@plane/propel/spinners";
-import { cn } from "@plane/utils";
+import type { IIntakeState } from "@dragonfruit/types";
+import { ComboDropDown } from "@dragonfruit/ui";
+import { Spinner } from "@dragonfruit/propel/spinners";
+import { cn } from "@dragonfruit/utils";
 // components
 import { DropdownButton } from "@/components/dropdowns/buttons";
 import { BUTTON_VARIANTS_WITH_TEXT } from "@/components/dropdowns/constants";

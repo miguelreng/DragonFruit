@@ -8,12 +8,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Eye, EyeClosed as EyeOff } from "@solar-icons/react/ssr";
 // plane internal packages
-import type { EAdminAuthErrorCodes, TAdminAuthErrorInfo } from "@plane/constants";
-import { API_BASE_URL } from "@plane/constants";
-import { Button } from "@plane/propel/button";
-import { AuthService } from "@plane/services";
-import { Input } from "@plane/ui";
-import { Spinner } from "@plane/propel/spinners";
+import type { EAdminAuthErrorCodes, TAdminAuthErrorInfo } from "@dragonfruit/constants";
+import { API_BASE_URL } from "@dragonfruit/constants";
+import { Button } from "@dragonfruit/propel/button";
+import { AuthService } from "@dragonfruit/services";
+import { Input } from "@dragonfruit/ui";
+import { Spinner } from "@dragonfruit/propel/spinners";
 // components
 import { Banner } from "@/components/common/banner";
 // local components

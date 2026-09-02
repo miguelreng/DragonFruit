@@ -5,11 +5,11 @@
  */
 
 import type { Editor } from "@tiptap/core";
-import { IconButton } from "@plane/propel/icon-button";
-import type { LucideIcon } from "@plane/icons";
-import { AlignCenter, AlignLeft, AlignRight } from "@plane/icons";
+import { IconButton } from "@dragonfruit/propel/icon-button";
+import type { LucideIcon } from "@dragonfruit/icons";
+import { AlignCenter, AlignLeft, AlignRight } from "@dragonfruit/icons";
 // plane utils
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // components
 import { TextAlignItem } from "@/components/menus";
 // types

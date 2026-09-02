@@ -13,9 +13,9 @@ import { when } from "mobx";
 import { observer } from "mobx-react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useSearchParams as useRouterSearchParams } from "react-router";
-import { TOAST_TYPE, dismissToast, setToast } from "@plane/propel/toast";
-import type { TBaseIssue, TIssuesResponse } from "@plane/types";
-import { cn, createIssuePayload, renderFormattedDate, renderFormattedPayloadDate } from "@plane/utils";
+import { TOAST_TYPE, dismissToast, setToast } from "@dragonfruit/propel/toast";
+import type { TBaseIssue, TIssuesResponse } from "@dragonfruit/types";
+import { cn, createIssuePayload, renderFormattedDate, renderFormattedPayloadDate } from "@dragonfruit/utils";
 import { Collapse } from "@/components/common/collapse";
 import { ChevronDown, ChevronUp, Plus } from "@/components/icons/lucide-shim";
 import useLocalStorage from "@/hooks/use-local-storage";
@@ -38,7 +38,7 @@ import { TaskQuickAdd } from "./task-quick-add";
 import { MAX_TASK_DEPTH, TaskRow, type TaskRowOps } from "./task-row";
 import { MY_TASKS_TABLE_COLUMNS } from "./my-tasks-table";
 import { isOpenIssue, useMyTasksData } from "./use-my-tasks";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 // How long the row stays visibly "checked" before it animates out of the list.
 const COMPLETE_ANIMATION_MS = 320;

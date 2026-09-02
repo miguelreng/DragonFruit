@@ -14,9 +14,9 @@ import { observer } from "mobx-react";
 import { usePathname, useParams } from "next/navigation";
 
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { EmptyStateDetailed } from "@plane/propel/empty-state";
-import { cn } from "@plane/utils";
+import { useTranslation } from "@dragonfruit/i18n";
+import { EmptyStateDetailed } from "@dragonfruit/propel/empty-state";
+import { cn } from "@dragonfruit/utils";
 // components
 import type { ViewMode } from "@/components/core/view-mode-toggle";
 import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";

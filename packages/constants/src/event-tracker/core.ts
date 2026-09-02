@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { EProductSubscriptionEnum } from "@plane/types";
+import type { EProductSubscriptionEnum } from "@dragonfruit/types";
 
 /**
  * ===========================================================================

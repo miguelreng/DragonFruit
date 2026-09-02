@@ -11,11 +11,11 @@ import { Controller, useForm } from "react-hook-form";
 // icons
 import { CircleCheck } from "@/components/icons/lucide-shim";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { Button, getButtonStyling } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Input } from "@plane/ui";
-import { cn, checkEmailValidity } from "@plane/utils";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button, getButtonStyling } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Input } from "@dragonfruit/ui";
+import { cn, checkEmailValidity } from "@dragonfruit/utils";
 // hooks
 import useTimer from "@/hooks/use-timer";
 // services

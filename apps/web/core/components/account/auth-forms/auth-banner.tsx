@@ -6,11 +6,11 @@
 
 import { Info } from "@/components/icons/lucide-shim";
 // plane imports
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { CloseIcon } from "@/components/icons/propel-shim";
 // helpers
 import type React from "react";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 type TAuthBanner = {
   message: React.ReactNode;

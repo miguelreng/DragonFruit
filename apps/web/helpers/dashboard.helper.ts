@@ -7,10 +7,10 @@
 import { endOfMonth, endOfWeek, endOfYear, startOfMonth, startOfWeek, startOfYear } from "date-fns";
 // helpers
 // types
-import { DURATION_FILTER_OPTIONS, EDurationFilters } from "@plane/constants";
-import type { TIssuesListTypes } from "@plane/types";
+import { DURATION_FILTER_OPTIONS, EDurationFilters } from "@dragonfruit/constants";
+import type { TIssuesListTypes } from "@dragonfruit/types";
 // constants
-import { renderFormattedDate, renderFormattedPayloadDate } from "@plane/utils";
+import { renderFormattedDate, renderFormattedPayloadDate } from "@dragonfruit/utils";
 
 // -------------------- DEPRECATED --------------------
 

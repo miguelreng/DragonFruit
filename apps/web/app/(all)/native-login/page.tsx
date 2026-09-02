@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
-import { API_BASE_URL } from "@plane/constants";
+import { API_BASE_URL } from "@dragonfruit/constants";
 import { AppLoadingScreen } from "@/components/common/app-loading-screen";
 
 const PRODUCTION_API_BASE_URL = "https://api.dragonfruit.sh";

@@ -16,10 +16,10 @@ import {
   StickyNote,
 } from "@/components/icons/lucide-shim";
 import { pickGoogleDriveFile } from "@/components/google-drive/google-drive-picker";
-import type { TDocEmbedInsertAttrs, TDocEmbedPickerMode, TDocEmbedType } from "@plane/editor";
-import type { IProjectView, TSticky } from "@plane/types";
-import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-import { cn } from "@plane/utils";
+import type { TDocEmbedInsertAttrs, TDocEmbedPickerMode, TDocEmbedType } from "@dragonfruit/editor";
+import type { IProjectView, TSticky } from "@dragonfruit/types";
+import { EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 import { ProjectPageService } from "@/services/page";
 import { StickyService } from "@/services/sticky.service";
 import { ViewService } from "@/services/view.service";

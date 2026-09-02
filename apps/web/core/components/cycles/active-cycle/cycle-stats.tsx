@@ -11,15 +11,15 @@ import { CalendarCheck } from "@/components/icons/lucide-shim";
 // headless ui
 import { Tab } from "@headlessui/react";
 // plane imports
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { PriorityIcon } from "@/components/icons/propel-shim";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TWorkItemFilterCondition } from "@plane/shared-state";
-import type { ICycle } from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TWorkItemFilterCondition } from "@dragonfruit/shared-state";
+import type { ICycle } from "@dragonfruit/types";
+import { EIssuesStoreType } from "@dragonfruit/types";
 // ui
-import { Loader, Avatar } from "@plane/ui";
-import { cn, renderFormattedDate, renderFormattedDateWithoutYear, getFileURL } from "@plane/utils";
+import { Loader, Avatar } from "@dragonfruit/ui";
+import { cn, renderFormattedDate, renderFormattedDateWithoutYear, getFileURL } from "@dragonfruit/utils";
 // assets
 import userImage from "@/app/assets/user.png?url";
 // components

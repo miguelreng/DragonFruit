@@ -11,9 +11,9 @@ import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/eleme
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview";
 import { attachInstruction, extractInstruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/tree-item";
 import { observer } from "mobx-react";
-import type { IIssueLabel, InstructionType, TBaseIssue, TIssuePriorities } from "@plane/types";
-import { DropIndicator } from "@plane/ui";
-import { cn, getDate, renderFormattedDate } from "@plane/utils";
+import type { IIssueLabel, InstructionType, TBaseIssue, TIssuePriorities } from "@dragonfruit/types";
+import { DropIndicator } from "@dragonfruit/ui";
+import { cn, getDate, renderFormattedDate } from "@dragonfruit/utils";
 import { Check, ChevronRight } from "@/components/icons/lucide-shim";
 import { PRIORITY_TEXT_CLASS } from "./task-parse";
 

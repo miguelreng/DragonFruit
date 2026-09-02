@@ -5,8 +5,8 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Button } from "@plane/propel/button";
-import type { TPageTemplate, TPageTemplateDetail } from "@plane/types";
+import { Button } from "@dragonfruit/propel/button";
+import type { TPageTemplate, TPageTemplateDetail } from "@dragonfruit/types";
 import { FileText, Loader2, Pencil, Plus, Trash2 } from "@/components/icons/lucide-shim";
 import { PageTemplateService } from "@/services/page/page-template.service";
 import { PageTemplateModal } from "./page-template-modal";

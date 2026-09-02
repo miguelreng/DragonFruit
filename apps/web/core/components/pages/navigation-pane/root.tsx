@@ -5,14 +5,14 @@
  */
 
 import { useCallback } from "react";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 import { observer } from "mobx-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRightCircle } from "@/components/icons/lucide-shim";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { Tabs } from "@plane/propel/tabs";
-import { Tooltip } from "@plane/propel/tooltip";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Tabs } from "@dragonfruit/propel/tabs";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 // hooks
 import { useQueryParams } from "@/hooks/use-query-params";
 // plane web components

@@ -5,8 +5,8 @@
  */
 
 // ui
-import { Tooltip } from "@plane/propel/tooltip";
-import type { IIssueLabel } from "@plane/types";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { IIssueLabel } from "@dragonfruit/types";
 // types
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // hooks

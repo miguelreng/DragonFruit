@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 import { PanelRight } from "@/components/icons/lucide-shim";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 

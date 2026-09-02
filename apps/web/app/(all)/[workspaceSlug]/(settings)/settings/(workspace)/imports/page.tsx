@@ -6,9 +6,9 @@
 
 import { useState } from "react";
 import { observer } from "mobx-react";
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { cn } from "@plane/utils";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { cn } from "@dragonfruit/utils";
 import { PageHead } from "@/components/core/page-title";
 import { CsvImportModal } from "@/components/imports";
 import { SettingsBoxedControlItem } from "@/components/settings/boxed-control-item";

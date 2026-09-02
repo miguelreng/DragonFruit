@@ -18,8 +18,8 @@ import type {
   TDateFilterFieldConfig,
   TDateRangeFilterFieldConfig,
   TFilterConditionNodeForDisplay,
-} from "@plane/types";
-import { FILTER_FIELD_TYPE } from "@plane/types";
+} from "@dragonfruit/types";
+import { FILTER_FIELD_TYPE } from "@dragonfruit/types";
 // local imports
 import { AdditionalFilterValueInput } from "@/plane-web/components/rich-filters/filter-value-input/root";
 import type { TFilterValueInputProps } from "../shared";

@@ -6,12 +6,12 @@
 
 import { useRef, useState } from "react";
 import { CancelCircle, Csv, UploadCloud } from "@/components/icons/lucide-shim";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TProjectBookmarkBulkImportResult, TProjectBookmarkCreatePayload } from "@plane/types";
-import { EModalWidth, ModalCore } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TProjectBookmarkBulkImportResult, TProjectBookmarkCreatePayload } from "@dragonfruit/types";
+import { EModalWidth, ModalCore } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 import { type CsvImportResult, mapCsvToBookmarks, parseCsv } from "./csv";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 type Props = {
   isOpen: boolean;

@@ -8,7 +8,7 @@ import React from "react";
 import { observer } from "mobx-react";
 import { CircleAlert } from "@/components/icons/lucide-shim";
 // plane imports
-import type { TExternalFilter, TFilterProperty } from "@plane/types";
+import type { TExternalFilter, TFilterProperty } from "@dragonfruit/types";
 // local imports
 import { FilterItemCloseButton } from "./close-button";
 import { FilterItemContainer } from "./container";

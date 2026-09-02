@@ -7,11 +7,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "react-router";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TProjectPublishViewProps } from "@plane/types";
-import { EModalWidth, Loader, ModalCore } from "@plane/ui";
-import { copyTextToClipboard } from "@plane/utils";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TProjectPublishViewProps } from "@dragonfruit/types";
+import { EModalWidth, Loader, ModalCore } from "@dragonfruit/ui";
+import { copyTextToClipboard } from "@dragonfruit/utils";
 import { CheckIcon, GlobeIcon, NewTabIcon } from "@/components/icons/propel-shim";
 import { useProjectPublish } from "@/hooks/store/use-project-publish";
 import { buildPublishedProjectCalendarUrl } from "./public-link";

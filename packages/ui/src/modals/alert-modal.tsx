@@ -9,8 +9,8 @@ import { DangerTriangle as AlertTriangle, InfoCircle as Info } from "@solar-icon
 import React from "react";
 import type { FC } from "react";
 // components
-import type { TButtonVariant } from "@plane/propel/button";
-import { Button } from "@plane/propel/button";
+import type { TButtonVariant } from "@dragonfruit/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 import { cn } from "../utils";
 import { EModalPosition, EModalWidth } from "./constants";
 import { ModalCore } from "./modal-core";

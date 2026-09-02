@@ -6,14 +6,14 @@
 
 import { useState } from "react";
 // plane imports
-import { ROLE } from "@plane/constants";
+import { ROLE } from "@dragonfruit/constants";
 // types
-import { Button } from "@plane/propel/button";
-import type { IWorkspaceMemberInvitation } from "@plane/types";
+import { Button } from "@dragonfruit/propel/button";
+import type { IWorkspaceMemberInvitation } from "@dragonfruit/types";
 // ui
-import { Checkbox } from "@plane/ui";
-import { Spinner } from "@plane/propel/spinners";
-import { truncateText } from "@plane/utils";
+import { Checkbox } from "@dragonfruit/ui";
+import { Spinner } from "@dragonfruit/propel/spinners";
+import { truncateText } from "@dragonfruit/utils";
 // constants
 // helpers
 import { WorkspaceLogo } from "@/components/workspace/logo";

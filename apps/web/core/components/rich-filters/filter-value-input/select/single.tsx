@@ -12,8 +12,8 @@ import type {
   TFilterProperty,
   TSingleSelectFilterFieldConfig,
   TFilterConditionNodeForDisplay,
-} from "@plane/types";
-import { CustomSearchSelect } from "@plane/ui";
+} from "@dragonfruit/types";
+import { CustomSearchSelect } from "@dragonfruit/ui";
 // local imports
 import { SelectedOptionsDisplay } from "./selected-options-display";
 import { getCommonCustomSearchSelectProps, getFormattedOptions, loadOptions } from "./shared";

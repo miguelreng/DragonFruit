@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 
 type CollapseProps = {
   /** Whether the content is shown. */
@@ -23,7 +23,7 @@ type CollapseProps = {
  * nested menus/popovers aren't clipped, and it never animates on first paint.
  *
  * Bring your own header/trigger and pass the resulting boolean as `open` — this renders content
- * only (unlike `@plane/ui`'s `Collapsible`, which owns its title button).
+ * only (unlike `@dragonfruit/ui`'s `Collapsible`, which owns its title button).
  */
 export function Collapse({ open, children, className }: CollapseProps) {
   const [animating, setAnimating] = useState(false);

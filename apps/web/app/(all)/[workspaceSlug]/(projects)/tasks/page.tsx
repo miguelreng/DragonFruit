@@ -6,12 +6,12 @@
 
 import { useParams } from "next/navigation";
 import { observer } from "mobx-react";
-import { ContentWrapper } from "@plane/ui";
+import { ContentWrapper } from "@dragonfruit/ui";
 // components
 import { PageHead } from "@/components/core/page-title";
 import { MyTasksSection } from "@/components/home/sections/my-tasks-section";
 import useLocalStorage from "@/hooks/use-local-storage";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // plane web imports
 import { HomePeekOverviewsRoot } from "@/plane-web/components/home";
 

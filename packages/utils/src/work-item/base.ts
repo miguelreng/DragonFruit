@@ -8,8 +8,8 @@ import { differenceInCalendarDays } from "date-fns/differenceInCalendarDays";
 import { isEmpty } from "lodash-es";
 import { v4 as uuidv4 } from "uuid";
 // plane imports
-import type { TIssueFilterPriorityObject, TIssuePriorities } from "@plane/constants";
-import { ISSUE_DISPLAY_FILTERS_BY_PAGE, ISSUE_PRIORITY_FILTERS, STATE_GROUPS } from "@plane/constants";
+import type { TIssueFilterPriorityObject, TIssuePriorities } from "@dragonfruit/constants";
+import { ISSUE_DISPLAY_FILTERS_BY_PAGE, ISSUE_PRIORITY_FILTERS, STATE_GROUPS } from "@dragonfruit/constants";
 import type {
   IGanttBlock,
   IIssueDisplayFilterOptions,
@@ -22,8 +22,8 @@ import type {
   TStateGroups,
   TSubGroupedIssues,
   TUnGroupedIssues,
-} from "@plane/types";
-import { EIssueLayoutTypes } from "@plane/types";
+} from "@dragonfruit/types";
+import { EIssueLayoutTypes } from "@dragonfruit/types";
 // local imports
 import { orderArrayBy } from "../array";
 import { getDate } from "../datetime";

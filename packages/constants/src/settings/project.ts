@@ -5,8 +5,8 @@
  */
 
 // plane imports
-import { EUserProjectRoles } from "@plane/types";
-import type { TProjectSettingsItem, TProjectSettingsTabs } from "@plane/types";
+import { EUserProjectRoles } from "@dragonfruit/types";
+import type { TProjectSettingsItem, TProjectSettingsTabs } from "@dragonfruit/types";
 
 export enum PROJECT_SETTINGS_CATEGORY {
   GENERAL = "general",

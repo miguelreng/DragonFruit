@@ -5,11 +5,11 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { EditorRefApi, CollaborationState } from "@plane/editor";
+import type { EditorRefApi, CollaborationState } from "@dragonfruit/editor";
 // plane editor
-import { convertBinaryDataToBase64String } from "@plane/editor";
+import { convertBinaryDataToBase64String } from "@dragonfruit/editor";
 // plane types
-import type { TDocumentPayload } from "@plane/types";
+import type { TDocumentPayload } from "@dragonfruit/types";
 // hooks
 import useAutoSave from "@/hooks/use-auto-save";
 import type { TPageInstance } from "@/store/pages/base-page";

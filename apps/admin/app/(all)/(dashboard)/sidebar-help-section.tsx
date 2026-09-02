@@ -9,11 +9,11 @@ import { observer } from "mobx-react";
 import Link from "next/link";
 import { QuestionCircle as HelpCircle, ChatSquare as MessageSquare, ArrowLeft as MoveLeft } from "@solar-icons/react/ssr";
 import { Transition } from "@headlessui/react";
-import { WEB_BASE_URL } from "@plane/constants";
+import { WEB_BASE_URL } from "@dragonfruit/constants";
 // plane internal packages
-import { GithubIcon, NewTabIcon, PageIcon } from "@plane/propel/icons";
-import { Tooltip } from "@plane/propel/tooltip";
-import { cn } from "@plane/utils";
+import { GithubIcon, NewTabIcon, PageIcon } from "@dragonfruit/propel/icons";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useInstance, useTheme } from "@/hooks/store";
 // assets

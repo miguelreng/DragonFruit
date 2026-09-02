@@ -7,7 +7,7 @@
 import { CheckCircle as CheckIcon } from "@solar-icons/react/ssr";
 import * as React from "react";
 // ui
-import { Tooltip } from "@plane/propel/tooltip";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 import type { TContextMenuItem } from "../dropdowns";
 import { CustomMenu } from "../dropdowns";
 import { cn } from "../utils";

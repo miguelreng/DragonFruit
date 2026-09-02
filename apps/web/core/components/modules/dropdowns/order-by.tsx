@@ -5,15 +5,15 @@
  */
 
 import { ArrowDownWideNarrow, ArrowUpWideNarrow } from "@/components/icons/lucide-shim";
-import { MODULE_ORDER_BY_OPTIONS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { getButtonStyling } from "@plane/propel/button";
+import { MODULE_ORDER_BY_OPTIONS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { getButtonStyling } from "@dragonfruit/propel/button";
 import { CheckIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
-import type { TModuleOrderByOptions } from "@plane/types";
+import type { TModuleOrderByOptions } from "@dragonfruit/types";
 // ui
-import { CustomMenu } from "@plane/ui";
+import { CustomMenu } from "@dragonfruit/ui";
 // helpers
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // types
 // constants
 

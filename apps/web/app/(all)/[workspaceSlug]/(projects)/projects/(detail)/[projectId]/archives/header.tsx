@@ -7,10 +7,10 @@
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { ArchiveIcon, CycleIcon, ModuleIcon, WorkItemsIcon } from "@/components/icons/propel-shim";
-import { Tooltip } from "@plane/propel/tooltip";
-import { EIssuesStoreType } from "@plane/types";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { EIssuesStoreType } from "@dragonfruit/types";
 // ui
-import { Breadcrumbs, Header } from "@plane/ui";
+import { Breadcrumbs, Header } from "@dragonfruit/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 // hooks

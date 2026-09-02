@@ -15,8 +15,8 @@ import {
   createRealtimeEvent,
   extractTextFromHTML,
   generateTitleProsemirrorJson,
-} from "@plane/editor";
-import { logger } from "@plane/logger";
+} from "@dragonfruit/editor";
+import { logger } from "@dragonfruit/logger";
 import { AppError } from "@/lib/errors";
 // helpers
 import { getPageService } from "@/services/page/handler";

@@ -5,13 +5,13 @@
  */
 
 import { observer } from "mobx-react";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TContextMenuItem } from "@plane/ui";
-import { CustomMenu } from "@plane/ui";
-import { copyUrlToClipboard, cn } from "@plane/utils";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TContextMenuItem } from "@dragonfruit/ui";
+import { CustomMenu } from "@dragonfruit/ui";
+import { copyUrlToClipboard, cn } from "@dragonfruit/utils";
 import { useLayoutMenuItems } from "@/components/common/quick-actions-helper";
 import { Ellipsis } from "@/components/icons/lucide-shim";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 type Props = {
   workspaceSlug: string;

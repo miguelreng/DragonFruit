@@ -5,7 +5,7 @@
  */
 
 // plane types
-import type { TSearchEntities } from "@plane/types";
+import type { TSearchEntities } from "@dragonfruit/types";
 
 export enum EMentionComponentAttributeNames {
   ID = "id",

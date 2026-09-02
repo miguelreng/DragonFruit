@@ -4,9 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
 
 type Service = "notion" | "clickup";
 

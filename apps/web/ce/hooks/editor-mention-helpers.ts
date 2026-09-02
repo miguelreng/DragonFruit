@@ -1,4 +1,4 @@
-import type { TPageSearchResponse } from "@plane/types";
+import type { TPageSearchResponse } from "@dragonfruit/types";
 
 export type TPageMentionKind = "page" | "whiteboard";
 

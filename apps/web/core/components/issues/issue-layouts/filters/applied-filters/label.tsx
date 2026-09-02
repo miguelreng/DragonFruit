@@ -8,7 +8,7 @@ import { observer } from "mobx-react";
 
 // icons
 import { CloseIcon } from "@/components/icons/propel-shim";
-import type { IIssueLabel } from "@plane/types";
+import type { IIssueLabel } from "@dragonfruit/types";
 // types
 
 type Props = {

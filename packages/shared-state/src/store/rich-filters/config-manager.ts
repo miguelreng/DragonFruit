@@ -7,9 +7,9 @@
 import { action, computed, makeObservable, observable } from "mobx";
 import { computedFn } from "mobx-utils";
 // plane imports
-import type { TConfigOptions } from "@plane/constants";
-import { DEFAULT_FILTER_CONFIG_OPTIONS } from "@plane/constants";
-import type { TExternalFilter, TFilterConfig, TFilterProperty } from "@plane/types";
+import type { TConfigOptions } from "@dragonfruit/constants";
+import { DEFAULT_FILTER_CONFIG_OPTIONS } from "@dragonfruit/constants";
+import type { TExternalFilter, TFilterConfig, TFilterProperty } from "@dragonfruit/types";
 // local imports
 import type { IFilterConfig } from "./config";
 import { FilterConfig } from "./config";

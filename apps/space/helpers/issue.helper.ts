@@ -6,8 +6,8 @@
 
 import { differenceInCalendarDays } from "date-fns/differenceInCalendarDays";
 // plane internal
-import { STATE_GROUPS } from "@plane/constants";
-import type { TStateGroups } from "@plane/types";
+import { STATE_GROUPS } from "@dragonfruit/constants";
+import type { TStateGroups } from "@dragonfruit/types";
 // helpers
 import { getDate } from "@/helpers/date-time.helper";
 

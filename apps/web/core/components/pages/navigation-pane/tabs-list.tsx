@@ -5,8 +5,8 @@
  */
 
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { Tabs } from "@plane/propel/tabs";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Tabs } from "@dragonfruit/propel/tabs";
 // plane web components
 import { ORDERED_PAGE_NAVIGATION_TABS_LIST } from "@/plane-web/components/pages/navigation-pane";
 

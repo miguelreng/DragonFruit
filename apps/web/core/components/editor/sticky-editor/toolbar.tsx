@@ -6,15 +6,15 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 // editor
-import type { EditorRefApi } from "@plane/editor";
+import type { EditorRefApi } from "@dragonfruit/editor";
 // ui
-import { useOutsideClickDetector } from "@plane/hooks";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
 import { FileOutput, Palette } from "@/components/icons/lucide-shim";
 import { TrashIcon } from "@/components/icons/propel-shim";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TSticky } from "@plane/types";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TSticky } from "@dragonfruit/types";
 // constants
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 import type { ToolbarMenuItem } from "@/constants/editor";
 import { TOOLBAR_ITEMS } from "@/constants/editor";
 // helpers

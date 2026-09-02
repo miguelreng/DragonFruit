@@ -8,12 +8,12 @@ import { useState, useRef } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { EmptyStateCompact } from "@plane/propel/empty-state";
-import type { IIssueLabel } from "@plane/types";
-import { Loader } from "@plane/ui";
+import { EUserPermissions, EUserPermissionsLevel } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { EmptyStateCompact } from "@dragonfruit/propel/empty-state";
+import type { IIssueLabel } from "@dragonfruit/types";
+import { Loader } from "@dragonfruit/ui";
 import type { TLabelOperationsCallbacks } from "@/components/labels";
 import {
   CreateUpdateLabelInline,

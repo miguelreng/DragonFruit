@@ -9,11 +9,11 @@ import { observer } from "mobx-react";
 import { Link } from "react-router";
 import { useParams, useSearchParams } from "next/navigation";
 // plane types
-import { Tooltip } from "@plane/propel/tooltip";
-import type { IIssueDisplayProperties } from "@plane/types";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { IIssueDisplayProperties } from "@dragonfruit/types";
 // plane ui
 // plane utils
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // components
 import { WithDisplayPropertiesHOC } from "@/components/issues/issue-layouts/with-display-properties-HOC";
 // helpers

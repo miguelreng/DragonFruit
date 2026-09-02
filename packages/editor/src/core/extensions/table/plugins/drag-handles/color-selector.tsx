@@ -5,12 +5,12 @@
  */
 
 import { Disclosure } from "@headlessui/react";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 import type { Editor } from "@tiptap/core";
-import { Ban, Palette } from "@plane/icons";
+import { Ban, Palette } from "@dragonfruit/icons";
 // plane imports
-import { ChevronRightIcon } from "@plane/propel/icons";
-import { cn } from "@plane/utils";
+import { ChevronRightIcon } from "@dragonfruit/propel/icons";
+import { cn } from "@dragonfruit/utils";
 // constants
 import { COLORS_LIST } from "@/constants/common";
 import { CORE_EXTENSIONS } from "@/constants/extension";

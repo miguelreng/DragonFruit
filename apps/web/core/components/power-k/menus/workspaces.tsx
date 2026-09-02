@@ -6,7 +6,7 @@
 
 import React from "react";
 // plane imports
-import type { IWorkspace } from "@plane/types";
+import type { IWorkspace } from "@dragonfruit/types";
 // components
 import { WorkspaceLogo } from "@/components/workspace/logo";
 // local imports

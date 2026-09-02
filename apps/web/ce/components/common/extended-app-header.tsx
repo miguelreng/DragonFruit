@@ -7,7 +7,7 @@
 import type { ReactNode } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "react-router";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 // components
 import { PanelLeft } from "@/components/icons/lucide-shim";
 import { AppRailExpandToggle } from "@/components/sidebar/app-rail-expand-toggle";

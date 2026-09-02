@@ -5,9 +5,9 @@
  */
 
 // plane imports
-import { API_BASE_URL } from "@plane/constants";
-import type { TInboxIssue, TIssue, TInboxIssueWithPagination } from "@plane/types";
-import { EInboxIssueSource } from "@plane/types";
+import { API_BASE_URL } from "@dragonfruit/constants";
+import type { TInboxIssue, TIssue, TInboxIssueWithPagination } from "@dragonfruit/types";
+import { EInboxIssueSource } from "@dragonfruit/types";
 // helpers
 // services
 import { APIService } from "@/services/api.service";

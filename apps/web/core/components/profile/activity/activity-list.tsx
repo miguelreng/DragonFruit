@@ -9,8 +9,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { History, MessageSquare } from "@/components/icons/lucide-shim";
 // plane imports
-import type { IUserActivityResponse } from "@plane/types";
-import { calculateTimeAgo, getFileURL } from "@plane/utils";
+import type { IUserActivityResponse } from "@dragonfruit/types";
+import { calculateTimeAgo, getFileURL } from "@dragonfruit/utils";
 // components
 import { ActivityIcon, ActivityMessage, IssueLink } from "@/components/core/activity";
 import { RichTextEditor } from "@/components/editor/rich-text";

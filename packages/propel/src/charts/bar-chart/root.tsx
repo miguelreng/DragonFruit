@@ -17,8 +17,8 @@ import {
   CartesianGrid,
 } from "recharts";
 // plane imports
-import { AXIS_LABEL_CLASSNAME } from "@plane/constants";
-import type { TBarChartProps } from "@plane/types";
+import { AXIS_LABEL_CLASSNAME } from "@dragonfruit/constants";
+import type { TBarChartProps } from "@dragonfruit/types";
 // local components
 import { getLegendProps } from "../components/legend";
 import { CustomXAxisTick, CustomYAxisTick } from "../components/tick";

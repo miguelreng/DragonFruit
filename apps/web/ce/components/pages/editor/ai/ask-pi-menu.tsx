@@ -5,12 +5,12 @@
  */
 
 import { useState } from "react";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 import { CircleArrowUp, CornerDownRight, RefreshCcw, Sparkles } from "@/components/icons/lucide-shim";
 // ui
-import { Tooltip } from "@plane/propel/tooltip";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 // components
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 import { RichTextEditor } from "@/components/editor/rich-text";
 // helpers
 // hooks

@@ -14,7 +14,7 @@ import faviconIco from "@/app/assets/favicon/favicon.ico?url";
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import globalStyles from "@/styles/globals.css?url";
 import { AppProviders } from "@/providers";
-import { joinUrlPath } from "@plane/utils";
+import { joinUrlPath } from "@dragonfruit/utils";
 import type { Route } from "./+types/root";
 // fonts — side-effect imports register font CSS at bundle time
 // Figtree is self-hosted from /public/fonts via @font-face in globals.css.

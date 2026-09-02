@@ -15,10 +15,10 @@ import {
   Settings,
 } from "@/components/icons/lucide-shim";
 // plane imports
-import { EUserPermissionsLevel } from "@plane/constants";
+import { EUserPermissionsLevel } from "@dragonfruit/constants";
 import { ArchiveIcon, UserActivityIcon, LayersIcon, ContrastIcon, DiceIcon, Intake } from "@/components/icons/propel-shim";
-import type { ICycle, IModule, IPartialProject, IProjectView, IWorkspace } from "@plane/types";
-import { EUserProjectRoles, EUserWorkspaceRoles } from "@plane/types";
+import type { ICycle, IModule, IPartialProject, IProjectView, IWorkspace } from "@dragonfruit/types";
+import { EUserProjectRoles, EUserWorkspaceRoles } from "@dragonfruit/types";
 // components
 import type { TPowerKCommandConfig, TPowerKContext } from "@/components/power-k/core/types";
 import { handlePowerKNavigate } from "@/components/power-k/utils/navigation";

@@ -14,15 +14,15 @@ import {
   Search as SearchIcon,
 } from "@/components/icons/lucide-shim";
 import { Combobox } from "@headlessui/react";
-import { ISSUE_PRIORITIES } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { ISSUE_PRIORITIES } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 // types
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TIssuePriorities } from "@plane/types";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TIssuePriorities } from "@dragonfruit/types";
 // ui
-import { ComboDropDown } from "@plane/ui";
+import { ComboDropDown } from "@dragonfruit/ui";
 // helpers
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useDropdown } from "@/hooks/use-dropdown";
 import { usePlatformOS } from "@/hooks/use-platform-os";

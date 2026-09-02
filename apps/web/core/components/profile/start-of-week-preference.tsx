@@ -6,10 +6,10 @@
 
 import { observer } from "mobx-react";
 // plane imports
-import { START_OF_THE_WEEK_OPTIONS } from "@plane/constants";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { EStartOfTheWeek } from "@plane/types";
-import { CustomSelect } from "@plane/ui";
+import { START_OF_THE_WEEK_OPTIONS } from "@dragonfruit/constants";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { EStartOfTheWeek } from "@dragonfruit/types";
+import { CustomSelect } from "@dragonfruit/ui";
 // components
 import { SettingsControlItem } from "@/components/settings/control-item";
 // hooks

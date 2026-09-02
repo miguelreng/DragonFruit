@@ -10,7 +10,7 @@ import Link from "next/link";
 import { AlertCircle, HardDrive } from "@/components/icons/lucide-shim";
 import { CloseIcon } from "@/components/icons/propel-shim";
 // ui
-import { Tooltip } from "@plane/propel/tooltip";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 import {
   convertBytesToSize,
   getFileExtension,
@@ -18,7 +18,7 @@ import {
   getFileURL,
   renderFormattedDate,
   truncateText,
-} from "@plane/utils";
+} from "@dragonfruit/utils";
 // icons
 //
 import { getFileIcon } from "@/components/icons";

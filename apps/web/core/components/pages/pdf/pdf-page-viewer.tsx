@@ -13,7 +13,7 @@ import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { FileText } from "@/components/icons/lucide-shim";
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import type { TPageInstance } from "@/store/pages/base-page";
-import { cn, getEditorAssetPdfContentSrc } from "@plane/utils";
+import { cn, getEditorAssetPdfContentSrc } from "@dragonfruit/utils";
 import { getPdfFitWidthScale } from "./pdf-viewer-utils";
 
 type Props = {

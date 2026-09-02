@@ -12,14 +12,14 @@ import {
   Link as LinkIcon,
   Trash as TrashIcon,
 } from "@/components/icons/lucide-shim";
-import { useTranslation } from "@plane/i18n";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TIssueServiceType } from "@plane/types";
-import { EIssueServiceType } from "@plane/types";
+import { useTranslation } from "@dragonfruit/i18n";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TIssueServiceType } from "@dragonfruit/types";
+import { EIssueServiceType } from "@dragonfruit/types";
 // ui
-import { CustomMenu } from "@plane/ui";
-import { calculateTimeAgo, copyTextToClipboard } from "@plane/utils";
+import { CustomMenu } from "@dragonfruit/ui";
+import { calculateTimeAgo, copyTextToClipboard } from "@dragonfruit/utils";
 // helpers
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";

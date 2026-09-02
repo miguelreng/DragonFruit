@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { Link2Off } from "@plane/icons";
-import { CopyIcon, GlobeIcon, EditIcon } from "@plane/propel/icons";
+import { Link2Off } from "@dragonfruit/icons";
+import { CopyIcon, GlobeIcon, EditIcon } from "@dragonfruit/propel/icons";
 // components
 import type { LinkViewProps, LinkViews } from "@/components/links";
 

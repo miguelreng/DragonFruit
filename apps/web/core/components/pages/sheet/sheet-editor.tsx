@@ -9,10 +9,10 @@
 import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { debounce } from "lodash-es";
-import { CollaborationProvider, RealtimePresenceLayer, useCollaboration, useRealtimePresence } from "@plane/editor";
-import type { TUserDetails, TPresenceParticipant } from "@plane/editor";
-import type { TPageVersion, TWebhookConnectionQueryParams } from "@plane/types";
-import { cn, generateRandomColor, getFileURL, hslToHex } from "@plane/utils";
+import { CollaborationProvider, RealtimePresenceLayer, useCollaboration, useRealtimePresence } from "@dragonfruit/editor";
+import type { TUserDetails, TPresenceParticipant } from "@dragonfruit/editor";
+import type { TPageVersion, TWebhookConnectionQueryParams } from "@dragonfruit/types";
+import { cn, generateRandomColor, getFileURL, hslToHex } from "@dragonfruit/utils";
 import {
   AlignCenter,
   AlignLeft,
@@ -107,7 +107,7 @@ import {
   type TSheetSnapshot,
 } from "./sheet-utils";
 import type { TChartSpec } from "@/components/chart/spec";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 type Props = {
   page: TPageInstance;

@@ -9,9 +9,9 @@ import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
-import type { IIssueDisplayFilterOptions, IIssueDisplayProperties, IProjectCustomField, TIssue } from "@plane/types";
-import { EIssueLayoutTypes } from "@plane/types";
-import { Checkbox } from "@plane/ui";
+import type { IIssueDisplayFilterOptions, IIssueDisplayProperties, IProjectCustomField, TIssue } from "@dragonfruit/types";
+import { EIssueLayoutTypes } from "@dragonfruit/types";
+import { Checkbox } from "@dragonfruit/ui";
 // components
 import { SpreadsheetIssueRowLoader } from "@/components/ui/loader/layouts/spreadsheet-layout-loader";
 // helpers

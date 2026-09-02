@@ -5,7 +5,7 @@
  */
 
 // FIXME: fix this!!!
-import type { ICustomSearchSelectOption } from "@plane/types";
+import type { ICustomSearchSelectOption } from "@dragonfruit/types";
 
 /**
  * Select panels portal to `document.body`, outside any modal stacking context.

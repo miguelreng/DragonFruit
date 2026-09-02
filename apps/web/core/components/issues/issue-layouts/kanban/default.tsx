@@ -17,10 +17,10 @@ import type {
   TIssueKanbanFilters,
   TIssueGroupByOptions,
   TIssueOrderByOptions,
-} from "@plane/types";
+} from "@dragonfruit/types";
 // constants
-import { STATE_GROUPS } from "@plane/constants";
-import { ContentWrapper } from "@plane/ui";
+import { STATE_GROUPS } from "@dragonfruit/constants";
+import { ContentWrapper } from "@dragonfruit/ui";
 // components
 import RenderIfVisible from "@/components/core/render-if-visible-HOC";
 import { KanbanColumnLoader } from "@/components/ui/loader/layouts/kanban-layout-loader";

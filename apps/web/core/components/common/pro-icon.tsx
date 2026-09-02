@@ -6,7 +6,7 @@
 
 import { Crown } from "@/components/icons/lucide-shim";
 // helpers
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 
 type TProIcon = {
   className?: string;

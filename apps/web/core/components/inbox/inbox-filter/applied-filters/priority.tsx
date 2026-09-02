@@ -5,11 +5,11 @@
  */
 
 import { observer } from "mobx-react";
-import { ISSUE_PRIORITIES } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { ISSUE_PRIORITIES } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 import { PriorityIcon, CloseIcon } from "@/components/icons/propel-shim";
-import type { TIssuePriorities } from "@plane/types";
-import { Tag } from "@plane/ui";
+import type { TIssuePriorities } from "@dragonfruit/types";
+import { Tag } from "@dragonfruit/ui";
 // hooks
 import { useProjectInbox } from "@/hooks/store/use-project-inbox";
 

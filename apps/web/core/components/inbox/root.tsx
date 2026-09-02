@@ -8,11 +8,11 @@ import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { PanelLeft } from "@/components/icons/lucide-shim";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { EmptyStateCompact } from "@plane/propel/empty-state";
+import { useTranslation } from "@dragonfruit/i18n";
+import { EmptyStateCompact } from "@dragonfruit/propel/empty-state";
 import { IntakeIcon } from "@/components/icons/propel-shim";
-import { EInboxIssueCurrentTab } from "@plane/types";
-import { cn } from "@plane/utils";
+import { EInboxIssueCurrentTab } from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 // components
 import { InboxContentRoot } from "@/components/inbox/content";
 import { InboxSidebar } from "@/components/inbox/sidebar";

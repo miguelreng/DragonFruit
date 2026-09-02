@@ -6,11 +6,11 @@
 
 import { useState } from "react";
 import { observer } from "mobx-react";
-import { ETabIndices } from "@plane/constants";
+import { ETabIndices } from "@dragonfruit/constants";
 import { ParentPropertyIcon } from "@/components/icons/propel-shim";
-import type { ISearchIssueResponse, TIssue } from "@plane/types";
-import { CustomMenu } from "@plane/ui";
-import { renderFormattedPayloadDate, getDate, getTabIndex } from "@plane/utils";
+import type { ISearchIssueResponse, TIssue } from "@dragonfruit/types";
+import { CustomMenu } from "@dragonfruit/ui";
+import { renderFormattedPayloadDate, getDate, getTabIndex } from "@dragonfruit/utils";
 // components
 import { CycleDropdown } from "@/components/dropdowns/cycle";
 import { DateDropdown } from "@/components/dropdowns/date";

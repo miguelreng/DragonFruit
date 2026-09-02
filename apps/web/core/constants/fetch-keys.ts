@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { EUserPermissions, IJiraMetadata, TRecentActivityFilterKeys } from "@plane/types";
+import type { EUserPermissions, IJiraMetadata, TRecentActivityFilterKeys } from "@dragonfruit/types";
 
 const paramsToKey = (params: any) => {
   const {

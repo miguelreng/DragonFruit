@@ -1,4 +1,4 @@
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 
 export function AtlasDocumentPreparingOverlay({ blockWidthClassName }: { blockWidthClassName: string }) {
   return (

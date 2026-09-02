@@ -8,10 +8,10 @@ import { useEffect } from "react";
 import { observer } from "mobx-react";
 import useSWR from "swr";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import type { TIssue } from "@plane/types";
-import { EIssueServiceType } from "@plane/types";
-import { Loader } from "@plane/ui";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { TIssue } from "@dragonfruit/types";
+import { EIssueServiceType } from "@dragonfruit/types";
+import { Loader } from "@dragonfruit/ui";
 // assets
 // components
 import { EmptyState } from "@/components/common/empty-state";

@@ -10,8 +10,8 @@ import type { FileRejection } from "react-dropzone";
 import { useDropzone } from "react-dropzone";
 import { Plus as PlusIcon } from "@/components/icons/lucide-shim";
 // plane imports
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TIssueServiceType } from "@plane/types";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TIssueServiceType } from "@dragonfruit/types";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 // plane web hooks

@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import useSWR from "swr";
-import type { TPageNavigationTabs, TPageType } from "@plane/types";
+import type { TPageNavigationTabs, TPageType } from "@dragonfruit/types";
 // plane web hooks
 import type { EPageStoreType } from "@/plane-web/hooks/store";
 import { usePageStore } from "@/plane-web/hooks/store";

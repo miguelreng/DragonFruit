@@ -6,9 +6,9 @@
 
 import { observer } from "mobx-react";
 // plane imports
-import { EUserPermissionsLevel } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { EUserProjectRoles } from "@plane/types";
+import { EUserPermissionsLevel } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { EUserProjectRoles } from "@dragonfruit/types";
 // components
 import { FileText } from "@/components/icons/lucide-shim";
 import { PageHead } from "@/components/core/page-title";

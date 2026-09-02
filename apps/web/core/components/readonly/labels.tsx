@@ -7,8 +7,8 @@
 import { useEffect } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { Tooltip } from "@plane/propel/tooltip";
-import { cn } from "@plane/utils";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useLabel } from "@/hooks/store/use-label";
 import { usePlatformOS } from "@/hooks/use-platform-os";

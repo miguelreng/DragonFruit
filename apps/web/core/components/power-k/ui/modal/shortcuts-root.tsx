@@ -8,8 +8,8 @@ import { useState, Fragment } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 // plane imports
 import { CloseIcon, SearchIcon } from "@/components/icons/propel-shim";
-import { ScrollArea } from "@plane/propel/scrollarea";
-import { Input } from "@plane/ui";
+import { ScrollArea } from "@dragonfruit/propel/scrollarea";
+import { Input } from "@dragonfruit/ui";
 // hooks
 import { usePowerK } from "@/hooks/store/use-power-k";
 // local imports

@@ -10,13 +10,13 @@ import { observer } from "mobx-react";
 import { usePopper } from "react-popper";
 import { Component, Loader } from "@/components/icons/lucide-shim";
 import { Combobox } from "@headlessui/react";
-import { getRandomLabelColor } from "@plane/constants";
+import { getRandomLabelColor } from "@dragonfruit/constants";
 // plane imports
-import { useOutsideClickDetector } from "@plane/hooks";
-import { useTranslation } from "@plane/i18n";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
+import { useTranslation } from "@dragonfruit/i18n";
 import { CheckIcon, SearchIcon, LabelPropertyIcon } from "@/components/icons/propel-shim";
-import type { IIssueLabel } from "@plane/types";
-import { cn } from "@plane/utils";
+import type { IIssueLabel } from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 // components
 import { IssueLabelsList } from "@/components/ui/labels-list";
 // hooks

@@ -7,7 +7,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams, usePathname } from "next/navigation";
-import type { TPage } from "@plane/types";
+import type { TPage } from "@dragonfruit/types";
 import {
   AgentChatDrawer,
   REPLY_TO_SELECTION_EVENT,
@@ -17,7 +17,7 @@ import {
   type ReplyToSelectionDetail,
   useActiveDocPageId,
 } from "@/components/agent-chat";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 import { AppRailRoot, MobileRailDrawer } from "@/components/navigation";
 import { ScrollShadowController } from "@/components/core/scroll-shadow-controller";
 import {

@@ -15,7 +15,7 @@ import {
   Document,
   Home,
 } from "@solar-icons/react/ssr";
-import { EUserWorkspaceRoles } from "@plane/types";
+import { EUserWorkspaceRoles } from "@dragonfruit/types";
 // hooks
 import { useUser } from "@/hooks/store/user";
 // local imports

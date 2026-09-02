@@ -6,10 +6,10 @@
 
 import { observer } from "mobx-react";
 // icons
-import { DATE_BEFORE_FILTER_OPTIONS } from "@plane/constants";
+import { DATE_BEFORE_FILTER_OPTIONS } from "@dragonfruit/constants";
 import { CloseIcon } from "@/components/icons/propel-shim";
 // plane constants
-import { renderFormattedDate, capitalizeFirstLetter } from "@plane/utils";
+import { renderFormattedDate, capitalizeFirstLetter } from "@dragonfruit/utils";
 // helpers
 type Props = {
   editable: boolean | undefined;

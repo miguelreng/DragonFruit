@@ -9,8 +9,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Menu } from "@headlessui/react";
 // plane imports
-import type { IWorkspace } from "@plane/types";
-import { cn } from "@plane/utils";
+import type { IWorkspace } from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 // plane web imports
 import { SubscriptionPill } from "@/plane-web/components/common/subscription/subscription-pill";
 // components

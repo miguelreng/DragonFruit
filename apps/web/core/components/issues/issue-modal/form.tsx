@@ -9,15 +9,15 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { FormProvider, useForm } from "react-hook-form";
 // editor
-import { ETabIndices, DEFAULT_WORK_ITEM_FORM_VALUES } from "@plane/constants";
-import type { EditorRefApi } from "@plane/editor";
+import { ETabIndices, DEFAULT_WORK_ITEM_FORM_VALUES } from "@dragonfruit/constants";
+import type { EditorRefApi } from "@dragonfruit/editor";
 // i18n
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TIssue, TWorkspaceDraftIssue } from "@plane/types";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TIssue, TWorkspaceDraftIssue } from "@dragonfruit/types";
 // hooks
-import { ToggleSwitch } from "@plane/ui";
+import { ToggleSwitch } from "@dragonfruit/ui";
 import {
   convertWorkItemDataToSearchResponse,
   getUpdateFormDataForReset,
@@ -25,7 +25,7 @@ import {
   getTextContent,
   getChangedIssuefields,
   getTabIndex,
-} from "@plane/utils";
+} from "@dragonfruit/utils";
 // components
 import {
   IssueDefaultProperties,

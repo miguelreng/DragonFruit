@@ -13,9 +13,9 @@ import type {
   TFilterProperty,
   TMultiSelectFilterFieldConfig,
   TFilterConditionNodeForDisplay,
-} from "@plane/types";
-import { CustomSearchSelect } from "@plane/ui";
-import { toFilterArray, getFilterValueLength } from "@plane/utils";
+} from "@dragonfruit/types";
+import { CustomSearchSelect } from "@dragonfruit/ui";
+import { toFilterArray, getFilterValueLength } from "@dragonfruit/utils";
 // local imports
 import { SelectedOptionsDisplay } from "./selected-options-display";
 import { getCommonCustomSearchSelectProps, getFormattedOptions, loadOptions } from "./shared";

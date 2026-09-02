@@ -13,10 +13,10 @@ import {
   LabelPropertyIcon,
   DuplicatePropertyIcon,
 } from "@/components/icons/propel-shim";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TInboxDuplicateIssueDetails, TIssue } from "@plane/types";
-import { ControlLink } from "@plane/ui";
-import { getDate, renderFormattedPayloadDate, generateWorkItemLink } from "@plane/utils";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TInboxDuplicateIssueDetails, TIssue } from "@dragonfruit/types";
+import { ControlLink } from "@dragonfruit/ui";
+import { getDate, renderFormattedPayloadDate, generateWorkItemLink } from "@dragonfruit/utils";
 // components
 import { DateDropdown } from "@/components/dropdowns/date";
 import { IntakeStateDropdown } from "@/components/dropdowns/intake-state/dropdown";

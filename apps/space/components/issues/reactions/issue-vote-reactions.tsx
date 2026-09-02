@@ -9,8 +9,8 @@ import { ArrowDown, ArrowUp } from "@solar-icons/react/ssr";
 import { observer } from "mobx-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 // plane imports
-import { Tooltip } from "@plane/propel/tooltip";
-import { cn } from "@plane/utils";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { cn } from "@dragonfruit/utils";
 // helpers
 import { queryParamGenerator } from "@/helpers/query-param-generator";
 // hooks

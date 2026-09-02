@@ -10,9 +10,9 @@ import { useParams } from "next/navigation";
 import useSWR from "swr";
 import { Disclosure } from "@headlessui/react";
 // plane imports
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { ChevronDownIcon } from "@/components/icons/propel-shim";
-import { Collapsible } from "@plane/ui";
+import { Collapsible } from "@dragonfruit/ui";
 // components
 import { CountChip } from "@/components/common/count-chip";
 import { MembersSettingsLoader } from "@/components/ui/loader/settings/members";

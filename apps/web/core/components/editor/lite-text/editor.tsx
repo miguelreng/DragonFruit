@@ -6,13 +6,13 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 // plane constants
-import type { EIssueCommentAccessSpecifier } from "@plane/constants";
+import type { EIssueCommentAccessSpecifier } from "@dragonfruit/constants";
 // plane imports
-import { LiteTextEditorWithRef } from "@plane/editor";
-import type { EditorRefApi, ILiteTextEditorProps, TFileHandler } from "@plane/editor";
-import { useTranslation } from "@plane/i18n";
-import type { MakeOptional } from "@plane/types";
-import { cn, isCommentEmpty } from "@plane/utils";
+import { LiteTextEditorWithRef } from "@dragonfruit/editor";
+import type { EditorRefApi, ILiteTextEditorProps, TFileHandler } from "@dragonfruit/editor";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { MakeOptional } from "@dragonfruit/types";
+import { cn, isCommentEmpty } from "@dragonfruit/utils";
 // components
 import { EditorMentionsRoot } from "@/components/editor/embeds/mentions";
 import { IssueCommentToolbar } from "@/components/editor/lite-text/toolbar";

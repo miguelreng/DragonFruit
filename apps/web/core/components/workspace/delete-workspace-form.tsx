@@ -8,12 +8,12 @@ import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
 import { AlertTriangle } from "@/components/icons/lucide-shim";
 // DragonFruit Imports
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IWorkspace } from "@plane/types";
-import { Input } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { IWorkspace } from "@dragonfruit/types";
+import { Input } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUserSettings } from "@/hooks/store/user";

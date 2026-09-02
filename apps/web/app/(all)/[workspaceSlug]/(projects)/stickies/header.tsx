@@ -7,8 +7,8 @@
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
-import { Button } from "@plane/propel/button";
-import { Breadcrumbs, Header } from "@plane/ui";
+import { Button } from "@dragonfruit/propel/button";
+import { Breadcrumbs, Header } from "@dragonfruit/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { STICKIES_VIEW_MODE_STORAGE_KEY, ViewModeToggle, type ViewMode } from "@/components/core/view-mode-toggle";

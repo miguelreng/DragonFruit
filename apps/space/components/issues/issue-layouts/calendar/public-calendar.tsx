@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 import { observer } from "mobx-react";
 import { useNavigate } from "react-router";
 import { Temporal } from "temporal-polyfill";
@@ -30,7 +30,7 @@ import "@schedule-x/theme-default/dist/index.css";
 import "@/styles/public-calendar.css";
 
 import { Eye, EyeClosed as EyeOff } from "@solar-icons/react/ssr";
-import { Icon } from "@plane/propel/icons";
+import { Icon } from "@dragonfruit/propel/icons";
 // components
 import { IssueLayoutHOC } from "@/components/issues/issue-layouts/issue-layout-HOC";
 // hooks

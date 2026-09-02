@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-import { API_BASE_URL } from "@plane/constants";
+import { API_BASE_URL } from "@dragonfruit/constants";
 import { APIService } from "@/services/api.service";
 
 export type TProjectContextSourceProvider = "google_drive" | "manual";

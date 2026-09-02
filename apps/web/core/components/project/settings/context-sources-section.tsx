@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
-import { Button } from "@plane/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 import { SettingsBoxedControlItem } from "@/components/settings/boxed-control-item";
 import {
   ProjectContextSourceService,

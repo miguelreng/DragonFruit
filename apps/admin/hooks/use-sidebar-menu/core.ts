@@ -6,7 +6,7 @@
 
 import { Gallery as Image, SettingsMinimalistic as Cog, Letter as Mail } from "@solar-icons/react/ssr";
 // plane imports
-import { LockIcon, WorkspaceIcon } from "@plane/propel/icons";
+import { LockIcon, WorkspaceIcon } from "@dragonfruit/propel/icons";
 // types
 import type { TSidebarMenuItem } from "./types";
 

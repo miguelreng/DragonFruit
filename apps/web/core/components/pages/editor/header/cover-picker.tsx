@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import { Popover, Transition } from "@headlessui/react";
 import { Image, X } from "@/components/icons/lucide-shim";
 // plane imports
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // store
 import type { TPageInstance } from "@/store/pages/base-page";
 // local

@@ -20,11 +20,11 @@
   },
   "dependencies": {
     "@solar-icons/react": "^1.1.1",
-    "@plane/icons": "workspace:*",
+    "@dragonfruit/icons": "workspace:*",
     "react": "catalog:"
   },
   "devDependencies": {
-    "@plane/typescript-config": "workspace:*",
+    "@dragonfruit/typescript-config": "workspace:*",
     "@types/react": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:"

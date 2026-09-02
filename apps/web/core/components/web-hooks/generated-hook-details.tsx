@@ -6,9 +6,9 @@
 
 // components
 // ui
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import type { IWebhook } from "@plane/types";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import type { IWebhook } from "@dragonfruit/types";
 // types
 import { WebhookSecretKey } from "./form";
 

@@ -6,8 +6,8 @@
 
 import { useContext } from "react";
 import { merge } from "lodash-es";
-import type { TIssueMap } from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
+import type { TIssueMap } from "@dragonfruit/types";
+import { EIssuesStoreType } from "@dragonfruit/types";
 import { StoreContext } from "@/lib/store-context";
 // plane web types
 import type { IProjectEpics, IProjectEpicsFilter } from "@/plane-web/store/issue/epic";

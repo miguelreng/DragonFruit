@@ -4,13 +4,13 @@
  * See the LICENSE file for details.
  */
 
-import { USER_TRACKER_ELEMENTS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { USER_TRACKER_ELEMENTS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 // ui
-import { getButtonStyling } from "@plane/propel/button";
+import { getButtonStyling } from "@dragonfruit/propel/button";
 import { DragonfruitLogo } from "@/components/icons/propel-shim";
 // helpers
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 
 export function ProductUpdatesFooter() {
   const { t } = useTranslation();

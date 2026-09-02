@@ -9,10 +9,10 @@ import { useParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { AlertTriangleIcon } from "@/components/icons/lucide-shim";
 // DragonFruit imports
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IProject } from "@plane/types";
-import { Input, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { IProject } from "@dragonfruit/types";
+import { Input, EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
 // hooks
 import { useUserPermissions } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";

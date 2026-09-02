@@ -5,7 +5,7 @@
  */
 
 // assets
-import { DragonfruitLogo } from "@plane/propel/icons";
+import { DragonfruitLogo } from "@dragonfruit/propel/icons";
 
 const DRAGONFRUIT_URL = "https://dragonfruit.sh";
 

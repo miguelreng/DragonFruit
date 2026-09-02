@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import { Clock, FileStack, MoreHorizontal, PanelLeft, MoveRight } from "@/components/icons/lucide-shim";
-import { IconButton, getIconButtonStyling } from "@plane/propel/icon-button";
+import { IconButton, getIconButtonStyling } from "@dragonfruit/propel/icon-button";
 import {
   LinkIcon,
   NewTabIcon,
@@ -16,10 +16,10 @@ import {
   CheckCircleFilledIcon,
   CloseCircleFilledIcon,
 } from "@/components/icons/propel-shim";
-import type { TNameDescriptionLoader } from "@plane/types";
+import type { TNameDescriptionLoader } from "@dragonfruit/types";
 
-import { Header, CustomMenu, EHeaderVariant } from "@plane/ui";
-import { cn, findHowManyDaysLeft, generateWorkItemLink } from "@plane/utils";
+import { Header, CustomMenu, EHeaderVariant } from "@dragonfruit/ui";
+import { cn, findHowManyDaysLeft, generateWorkItemLink } from "@dragonfruit/utils";
 // components
 import { NameDescriptionUpdateStatus } from "@/components/issues/issue-update-status";
 // hooks

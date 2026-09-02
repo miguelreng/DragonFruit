@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import type { IEditorPropsExtended } from "@plane/editor";
-import type { TSearchEntityRequestPayload, TSearchResponse } from "@plane/types";
+import type { IEditorPropsExtended } from "@dragonfruit/editor";
+import type { TSearchEntityRequestPayload, TSearchResponse } from "@dragonfruit/types";
 import type { TPageInstance } from "@/store/pages/base-page";
 import type { EPageStoreType } from "../store";
 

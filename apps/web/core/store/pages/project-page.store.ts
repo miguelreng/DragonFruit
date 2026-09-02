@@ -8,11 +8,11 @@ import { unset, set } from "lodash-es";
 import { makeObservable, observable, runInAction, action, reaction, computed } from "mobx";
 import { computedFn } from "mobx-utils";
 // types
-import { EUserPermissions } from "@plane/constants";
-import type { TPage, TPageFilters, TPageNavigationTabs, TPageType } from "@plane/types";
-import { EUserProjectRoles } from "@plane/types";
+import { EUserPermissions } from "@dragonfruit/constants";
+import type { TPage, TPageFilters, TPageNavigationTabs, TPageType } from "@dragonfruit/types";
+import { EUserProjectRoles } from "@dragonfruit/types";
 // helpers
-import { filterPagesByPageType, getPageName, orderPages, shouldFilterPage } from "@plane/utils";
+import { filterPagesByPageType, getPageName, orderPages, shouldFilterPage } from "@dragonfruit/utils";
 // plane web constants
 import { isBriefPage } from "@/components/project/brief/constants";
 // plane web store

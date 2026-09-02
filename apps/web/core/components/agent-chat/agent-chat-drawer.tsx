@@ -40,7 +40,7 @@ import useSWR, { mutate as globalMutate } from "swr";
 
 // Register once. Aliases (`js`, `ts`, `py`) ride along via the language
 // definitions themselves. The `github-dark.css` theme is already loaded
-// globally through `@plane/editor/styles` (apps/web/styles/globals.css)
+// globally through `@dragonfruit/editor/styles` (apps/web/styles/globals.css)
 // so the `.hljs-*` spans we emit pick up the right colours.
 let _hljsRegistered = false;
 function ensureHljsRegistered() {
@@ -67,14 +67,14 @@ function ensureHljsRegistered() {
   _hljsRegistered = true;
 }
 // plane imports
-import type { EditorRefApi, EditorTitleRefApi } from "@plane/editor";
-import type { IWorkspaceIssueSearchResult, IWorkspacePageSearchResult, TProject } from "@plane/types";
-import { Button } from "@plane/propel/button";
-import { IconButton } from "@plane/propel/icon-button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { AlertModalCore, CustomMenu, ToggleSwitch } from "@plane/ui";
-import { Spinner } from "@plane/propel/spinners";
-import { cn } from "@plane/utils";
+import type { EditorRefApi, EditorTitleRefApi } from "@dragonfruit/editor";
+import type { IWorkspaceIssueSearchResult, IWorkspacePageSearchResult, TProject } from "@dragonfruit/types";
+import { Button } from "@dragonfruit/propel/button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { AlertModalCore, CustomMenu, ToggleSwitch } from "@dragonfruit/ui";
+import { Spinner } from "@dragonfruit/propel/spinners";
+import { cn } from "@dragonfruit/utils";
 // components
 import { parseChartSpec } from "@/components/chart/spec";
 import {

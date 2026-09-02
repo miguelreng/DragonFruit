@@ -11,12 +11,12 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { TwitterPicker } from "react-color";
 // plane imports
-import { EUserPermissionsLevel } from "@plane/constants";
-import { useOutsideClickDetector } from "@plane/hooks";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { EUserProjectRoles } from "@plane/types";
-import { Popover } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { EUserPermissionsLevel } from "@dragonfruit/constants";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { EUserProjectRoles } from "@dragonfruit/types";
+import { Popover } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 // components
 import { PlusIcon } from "@/components/icons/propel-shim";
 // hooks

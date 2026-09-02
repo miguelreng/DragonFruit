@@ -55,7 +55,7 @@ export default defineConfig(({ mode }) => {
     // Dev-only: pre-bundle the heavy dependencies that are reached only on
     // specific routes (drag-and-drop boards, the rich-text editor, charts, PDF
     // export, the command palette, etc.). Many sit behind code-split / React.lazy
-    // boundaries or come transitively through linked @plane/* packages, so Vite's
+    // boundaries or come transitively through linked @dragonfruit/* packages, so Vite's
     // cold-start crawl doesn't see them. Without this, the FIRST navigation into
     // such a route makes Vite discover the deps, run a fresh optimize pass, and
     // emit "optimized dependencies changed. reloading" — which invalidates the

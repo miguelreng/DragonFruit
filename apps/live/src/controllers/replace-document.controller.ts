@@ -8,14 +8,14 @@ import type { Hocuspocus } from "@hocuspocus/server";
 import type { Request, Response } from "express";
 import { z } from "zod";
 // plane imports
-import { Controller, Post } from "@plane/decorators";
+import { Controller, Post } from "@dragonfruit/decorators";
 import {
   convertBase64StringToBinaryData,
   replaceDocumentEditorBinaryFromHTML,
   replaceDocumentEditorYDocContent,
   serializeDocumentEditorYDoc,
-} from "@plane/editor";
-import { logger } from "@plane/logger";
+} from "@dragonfruit/editor";
+import { logger } from "@dragonfruit/logger";
 
 // Validate request body. `existing_binary` is the base64 of the doc's currently
 // stored Yjs blob (optional — absent for a brand-new doc).

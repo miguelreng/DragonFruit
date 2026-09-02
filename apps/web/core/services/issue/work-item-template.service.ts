@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { API_BASE_URL } from "@plane/constants";
-import type { TIssue } from "@plane/types";
+import { API_BASE_URL } from "@dragonfruit/constants";
+import type { TIssue } from "@dragonfruit/types";
 import { APIService } from "@/services/api.service";
 
 export type TWorkItemTemplate = {

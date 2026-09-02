@@ -7,14 +7,14 @@
 import { observer } from "mobx-react";
 
 import { HardDrive } from "@/components/icons/lucide-shim";
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { TrashIcon } from "@/components/icons/propel-shim";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TIssueServiceType } from "@plane/types";
-import { EIssueServiceType } from "@plane/types";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TIssueServiceType } from "@dragonfruit/types";
+import { EIssueServiceType } from "@dragonfruit/types";
 // ui
-import { CustomMenu } from "@plane/ui";
-import { convertBytesToSize, getFileExtension, getFileName, getFileURL, renderFormattedDate } from "@plane/utils";
+import { CustomMenu } from "@dragonfruit/ui";
+import { convertBytesToSize, getFileExtension, getFileName, getFileURL, renderFormattedDate } from "@dragonfruit/utils";
 // components
 //
 import { ButtonAvatars } from "@/components/dropdowns/member/avatar";

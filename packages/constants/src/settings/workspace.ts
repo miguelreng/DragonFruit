@@ -5,8 +5,8 @@
  */
 
 // plane imports
-import type { TWorkspaceSettingsItem, TWorkspaceSettingsTabs } from "@plane/types";
-import { EUserWorkspaceRoles } from "@plane/types";
+import type { TWorkspaceSettingsItem, TWorkspaceSettingsTabs } from "@dragonfruit/types";
+import { EUserWorkspaceRoles } from "@dragonfruit/types";
 
 export enum WORKSPACE_SETTINGS_CATEGORY {
   ADMINISTRATION = "administration",

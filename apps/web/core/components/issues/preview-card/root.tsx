@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 // plane imports
 import { PriorityIcon, StateGroupIcon } from "@/components/icons/propel-shim";
-import type { TIssue, TStateGroups } from "@plane/types";
+import type { TIssue, TStateGroups } from "@dragonfruit/types";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";

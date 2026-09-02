@@ -7,11 +7,11 @@
 import React from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { setToast, TOAST_TYPE } from "@plane/propel/toast";
-import type { IFilterInstance } from "@plane/shared-state";
-import type { TExternalFilter, TFilterProperty, TSupportedOperators } from "@plane/types";
-import { CustomSearchSelect } from "@plane/ui";
-import { getOperatorForPayload } from "@plane/utils";
+import { setToast, TOAST_TYPE } from "@dragonfruit/propel/toast";
+import type { IFilterInstance } from "@dragonfruit/shared-state";
+import type { TExternalFilter, TFilterProperty, TSupportedOperators } from "@dragonfruit/types";
+import { CustomSearchSelect } from "@dragonfruit/ui";
+import { getOperatorForPayload } from "@dragonfruit/utils";
 
 export type TAddFilterDropdownProps<P extends TFilterProperty, E extends TExternalFilter> = {
   customButton: React.ReactNode;

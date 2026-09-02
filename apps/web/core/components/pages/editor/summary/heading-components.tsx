@@ -5,8 +5,8 @@
  */
 
 // plane imports
-import type { IMarking } from "@plane/editor";
-import { cn } from "@plane/utils";
+import type { IMarking } from "@dragonfruit/editor";
+import { cn } from "@dragonfruit/utils";
 
 export type THeadingComponentProps = {
   marking: IMarking;

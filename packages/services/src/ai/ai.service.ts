@@ -5,8 +5,8 @@
  */
 
 // plane web constants
-import type { AI_EDITOR_TASKS } from "@plane/constants";
-import { API_BASE_URL } from "@plane/constants";
+import type { AI_EDITOR_TASKS } from "@dragonfruit/constants";
+import { API_BASE_URL } from "@dragonfruit/constants";
 // services
 import { APIService } from "../api.service";
 

@@ -8,10 +8,10 @@ import { useCallback } from "react";
 import { observer } from "mobx-react";
 import { ListFilter } from "@/components/icons/lucide-shim";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import type { TPageFilterProps, TPageNavigationTabs, TPageType } from "@plane/types";
-import { Header, EHeaderVariant } from "@plane/ui";
-import { calculateTotalFilters } from "@plane/utils";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { TPageFilterProps, TPageNavigationTabs, TPageType } from "@dragonfruit/types";
+import { Header, EHeaderVariant } from "@dragonfruit/ui";
+import { calculateTotalFilters } from "@dragonfruit/utils";
 // components
 import { FiltersDropdown } from "@/components/issues/issue-layouts/filters";
 // hooks

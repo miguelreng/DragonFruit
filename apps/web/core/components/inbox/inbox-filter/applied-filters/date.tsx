@@ -5,12 +5,12 @@
  */
 
 import { observer } from "mobx-react";
-import { PAST_DURATION_FILTER_OPTIONS } from "@plane/constants";
+import { PAST_DURATION_FILTER_OPTIONS } from "@dragonfruit/constants";
 import { CloseIcon } from "@/components/icons/propel-shim";
-import type { TInboxIssueFilterDateKeys } from "@plane/types";
+import type { TInboxIssueFilterDateKeys } from "@dragonfruit/types";
 // helpers
-import { Tag } from "@plane/ui";
-import { renderFormattedDate } from "@plane/utils";
+import { Tag } from "@dragonfruit/ui";
+import { renderFormattedDate } from "@dragonfruit/utils";
 // constants
 // hooks
 import { useProjectInbox } from "@/hooks/store/use-project-inbox";

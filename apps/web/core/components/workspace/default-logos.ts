@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { getFileURL } from "@plane/utils";
+import { getFileURL } from "@dragonfruit/utils";
 
 export const DEFAULT_WORKSPACE_LOGOS = [
   "/workspace-defaults/renaissance-dragon-headshot-01.jpg",

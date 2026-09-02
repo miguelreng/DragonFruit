@@ -5,11 +5,11 @@
  */
 
 // plane imports
-import type { I_THEME_OPTION } from "@plane/constants";
-import { THEME_OPTIONS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import type { I_THEME_OPTION } from "@dragonfruit/constants";
+import { THEME_OPTIONS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 // constants
-import { CustomSelect } from "@plane/ui";
+import { CustomSelect } from "@dragonfruit/ui";
 // ui
 
 type Props = {

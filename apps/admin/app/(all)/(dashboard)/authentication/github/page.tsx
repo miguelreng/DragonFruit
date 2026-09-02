@@ -9,9 +9,9 @@ import { observer } from "mobx-react";
 import { useTheme } from "next-themes";
 import useSWR from "swr";
 // plane internal packages
-import { setPromiseToast } from "@plane/propel/toast";
-import { Loader, ToggleSwitch } from "@plane/ui";
-import { resolveGeneralTheme } from "@plane/utils";
+import { setPromiseToast } from "@dragonfruit/propel/toast";
+import { Loader, ToggleSwitch } from "@dragonfruit/ui";
+import { resolveGeneralTheme } from "@dragonfruit/utils";
 // assets
 import githubLightModeImage from "@/app/assets/logos/github-black.png?url";
 import githubDarkModeImage from "@/app/assets/logos/github-white.png?url";

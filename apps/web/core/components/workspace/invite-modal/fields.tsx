@@ -8,11 +8,11 @@ import { observer } from "mobx-react";
 import type { Control, FieldArrayWithId, FormState } from "react-hook-form";
 import { Controller } from "react-hook-form";
 // plane imports
-import { ROLE } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { ROLE } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 import { CloseIcon } from "@/components/icons/propel-shim";
-import { CustomSelect, Input } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { CustomSelect, Input } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useUserPermissions } from "@/hooks/store/user";
 import type { InvitationFormValues } from "@/hooks/use-workspace-invitation";

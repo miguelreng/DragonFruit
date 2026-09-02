@@ -15,7 +15,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AtSign, Briefcase } from "@/components/icons/lucide-shim";
 // plane imports
-import { Logo } from "@plane/propel/emoji-icon-picker";
+import { Logo } from "@dragonfruit/propel/emoji-icon-picker";
 import {
   CalendarLayoutIcon,
   CycleGroupIcon,
@@ -41,8 +41,8 @@ import type {
   IModule,
   IProject,
   TWorkItemFilterProperty,
-} from "@plane/types";
-import { Avatar } from "@plane/ui";
+} from "@dragonfruit/types";
+import { Avatar } from "@dragonfruit/ui";
 import {
   getAssigneeFilterConfig,
   getCreatedAtFilterConfig,
@@ -62,7 +62,7 @@ import {
   getTargetDateFilterConfig,
   getUpdatedAtFilterConfig,
   isLoaderReady,
-} from "@plane/utils";
+} from "@dragonfruit/utils";
 // store hooks
 import { useCycle } from "@/hooks/store/use-cycle";
 import { useLabel } from "@/hooks/store/use-label";

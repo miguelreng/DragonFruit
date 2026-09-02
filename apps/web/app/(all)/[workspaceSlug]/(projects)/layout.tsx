@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import { usePathname } from "next/navigation";
 import { Outlet } from "react-router";
-import { EIssuesStoreType } from "@plane/types";
+import { EIssuesStoreType } from "@dragonfruit/types";
 import { WikiExplainListener } from "@/components/editor/wiki-explain-listener";
 import { WikiToolsListener } from "@/components/editor/wiki-tools-listener";
 import { IssuePeekOverview } from "@/components/issues/peek-overview";

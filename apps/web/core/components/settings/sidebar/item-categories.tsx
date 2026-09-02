@@ -15,10 +15,10 @@ import {
   PROFILE_SETTINGS_CATEGORIES,
   WORKSPACE_SETTINGS_CATEGORIES,
   WORKSPACE_SETTINGS_CATEGORY_LABELS,
-} from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import type { TProfileSettingsTabs } from "@plane/types";
-import { joinUrlPath } from "@plane/utils";
+} from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { TProfileSettingsTabs } from "@dragonfruit/types";
+import { joinUrlPath } from "@dragonfruit/utils";
 import { Bell, History, Key, Settings, Shield, UserRounded } from "@solar-icons/react/ssr";
 // components
 import { ACTIVE_WORKSPACE_SETTINGS_ICONS, WORKSPACE_SETTINGS_ICONS } from "@/components/settings/workspace/sidebar/item-icon";

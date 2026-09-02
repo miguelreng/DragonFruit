@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  *
- * Solar shim for @plane/propel/icons. The app standardizes on Solar icons, so
+ * Solar shim for @dragonfruit/propel/icons. The app standardizes on Solar icons, so
  * every generic propel icon with a Solar equivalent is overridden below.
  *
- * `export * from "@plane/propel/icons"` is kept as a fallback (per ES module
+ * `export * from "@dragonfruit/propel/icons"` is kept as a fallback (per ES module
  * spec, the explicit named exports below shadow same-named star exports). This
  * deliberately preserves the icons Solar has no equivalent for: the DragonFruit
  * brand marks (DragonfruitLogo/Lockup), type exports (ISvgIcons, TModuleStatus),
@@ -15,10 +15,10 @@
 import type { ComponentType, SVGProps } from "react";
 import type { IconWeight } from "@solar-icons/react";
 import * as Solar from "@solar-icons/react/ssr";
-import { EIconSize } from "@plane/constants";
-import { cn } from "@plane/utils";
+import { EIconSize } from "@dragonfruit/constants";
+import { cn } from "@dragonfruit/utils";
 
-export * from "@plane/propel/icons";
+export * from "@dragonfruit/propel/icons";
 
 type SolarIconProps = SVGProps<SVGSVGElement> & { weight?: IconWeight; size?: string | number };
 

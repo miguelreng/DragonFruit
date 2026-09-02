@@ -9,7 +9,7 @@ import { Link } from "react-router";
 import { usePathname } from "next/navigation";
 import { Lock } from "@solar-icons/react/ssr";
 // plane imports
-import { Button } from "@plane/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 // components
 import { AddComment } from "@/components/issues/peek-overview/comment/add-comment";
 import { CommentCard } from "@/components/issues/peek-overview/comment/comment-detail-card";

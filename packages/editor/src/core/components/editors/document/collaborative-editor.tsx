@@ -6,7 +6,7 @@
 
 import React, { useMemo, useRef } from "react";
 // plane imports
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // components
 import { PageRenderer } from "@/components/editors";
 import { RealtimePresence } from "@/components/presence/realtime-presence";

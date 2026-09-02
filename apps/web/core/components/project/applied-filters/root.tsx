@@ -4,13 +4,13 @@
  * See the LICENSE file for details.
  */
 
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { CloseIcon } from "@/components/icons/propel-shim";
 // plane imports
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TProjectAppliedDisplayFilterKeys, TProjectFilters } from "@plane/types";
-import { EHeaderVariant, Header, Tag } from "@plane/ui";
-import { replaceUnderscoreIfSnakeCase } from "@plane/utils";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TProjectAppliedDisplayFilterKeys, TProjectFilters } from "@dragonfruit/types";
+import { EHeaderVariant, Header, Tag } from "@dragonfruit/ui";
+import { replaceUnderscoreIfSnakeCase } from "@dragonfruit/utils";
 // local imports
 import { AppliedAccessFilters } from "./access";
 import { AppliedDateFilters } from "./date";

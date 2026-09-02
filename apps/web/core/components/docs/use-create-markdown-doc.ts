@@ -5,9 +5,9 @@
  */
 
 import { useCallback, useState } from "react";
-import { EPageAccess } from "@plane/constants";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TPage } from "@plane/types";
+import { EPageAccess } from "@dragonfruit/constants";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TPage } from "@dragonfruit/types";
 import { ProjectPageService } from "@/services/page/project-page.service";
 import {
   getImportErrorMessage,

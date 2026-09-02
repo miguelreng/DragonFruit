@@ -5,7 +5,7 @@
  */
 
 import Link from "next/link";
-import { DragonfruitLockup } from "@plane/propel/icons";
+import { DragonfruitLockup } from "@dragonfruit/propel/icons";
 
 export function AuthHeader() {
   return (

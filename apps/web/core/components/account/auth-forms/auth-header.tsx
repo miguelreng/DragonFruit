@@ -6,8 +6,8 @@
 
 import { observer } from "mobx-react";
 import useSWR from "swr";
-import { useTranslation } from "@plane/i18n";
-import type { IWorkspaceMemberInvitation } from "@plane/types";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { IWorkspaceMemberInvitation } from "@dragonfruit/types";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { WorkspaceLogo } from "@/components/workspace/logo";

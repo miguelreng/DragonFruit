@@ -15,7 +15,7 @@ import type {
   TIssueReaction,
   TIssueServiceType,
   TWorkItemWidgets,
-} from "@plane/types";
+} from "@dragonfruit/types";
 import type { TGoogleDriveAttachmentPayload } from "@/services/issue";
 // plane web store
 import { IssueActivityStore } from "@/plane-web/store/issue/issue-details/activity.store";

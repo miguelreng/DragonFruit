@@ -6,10 +6,10 @@
 
 import { observer } from "mobx-react";
 // plane ui
-import { ModuleIcon } from "@plane/propel/icons";
-import { Tooltip } from "@plane/propel/tooltip";
+import { ModuleIcon } from "@dragonfruit/propel/icons";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 // plane utils
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useModule } from "@/hooks/store/use-module";
 

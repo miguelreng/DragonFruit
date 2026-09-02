@@ -9,10 +9,10 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { AlertTriangle } from "@/components/icons/lucide-shim";
 // types
-import { Button } from "@plane/propel/button";
-import type { IUserLite } from "@plane/types";
+import { Button } from "@dragonfruit/propel/button";
+import type { IUserLite } from "@dragonfruit/types";
 // ui
-import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
+import { EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 import { useUser } from "@/hooks/store/user";

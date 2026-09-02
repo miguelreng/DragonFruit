@@ -8,12 +8,12 @@ import React from "react";
 import { observer } from "mobx-react";
 import { ListChecks as WorkItemsIcon, Plus as PlusIcon } from "@/components/icons/lucide-shim";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import type { TIssue, TIssueServiceType } from "@plane/types";
-import { Tooltip } from "@plane/propel/tooltip";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { TIssue, TIssueServiceType } from "@dragonfruit/types";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 type Props = {
   issueId: string;

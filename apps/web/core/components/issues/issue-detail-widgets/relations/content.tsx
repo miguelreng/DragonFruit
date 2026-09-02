@@ -7,10 +7,10 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import type { TIssue, TIssueServiceType } from "@plane/types";
-import { EIssueServiceType } from "@plane/types";
-import { Collapsible } from "@plane/ui";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { TIssue, TIssueServiceType } from "@dragonfruit/types";
+import { EIssueServiceType } from "@dragonfruit/types";
+import { Collapsible } from "@dragonfruit/ui";
 // components
 import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";
 // hooks

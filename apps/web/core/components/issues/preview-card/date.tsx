@@ -7,8 +7,8 @@
 import { CalendarDays } from "@/components/icons/lucide-shim";
 // plane imports
 import { DueDatePropertyIcon, StartDatePropertyIcon } from "@/components/icons/propel-shim";
-import type { TStateGroups } from "@plane/types";
-import { cn, renderFormattedDate, shouldHighlightIssueDueDate } from "@plane/utils";
+import type { TStateGroups } from "@dragonfruit/types";
+import { cn, renderFormattedDate, shouldHighlightIssueDueDate } from "@dragonfruit/utils";
 
 type Props = {
   startDate: string | null;

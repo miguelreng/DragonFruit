@@ -8,14 +8,14 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 import { observer } from "mobx-react";
 import { Info } from "@/components/icons/lucide-shim";
-import { EEstimateSystem, MAX_ESTIMATE_POINT_INPUT_LENGTH } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { EEstimateSystem, MAX_ESTIMATE_POINT_INPUT_LENGTH } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 import { CheckIcon, CloseIcon } from "@/components/icons/propel-shim";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TEstimatePointsObject, TEstimateSystemKeys, TEstimateTypeErrorObject } from "@plane/types";
-import { Spinner } from "@plane/propel/spinners";
-import { cn, isEstimatePointValuesRepeated } from "@plane/utils";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TEstimatePointsObject, TEstimateSystemKeys, TEstimateTypeErrorObject } from "@dragonfruit/types";
+import { Spinner } from "@dragonfruit/propel/spinners";
+import { cn, isEstimatePointValuesRepeated } from "@dragonfruit/utils";
 import { EstimateInputRoot } from "@/components/estimates/inputs/root";
 // helpers
 // hooks

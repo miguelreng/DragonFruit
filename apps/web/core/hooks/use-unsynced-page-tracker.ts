@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import type { CollaborationState } from "@plane/editor";
+import type { CollaborationState } from "@dragonfruit/editor";
 import { clearPageUnsynced, markPageUnsynced } from "@/helpers/unsynced-pages";
 
 type Args = {

@@ -7,7 +7,7 @@
 import React from "react";
 import { observer } from "mobx-react";
 // plane imports
-import type { TIssueServiceType, TWorkItemWidgets } from "@plane/types";
+import type { TIssueServiceType, TWorkItemWidgets } from "@dragonfruit/types";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 // DragonFruit-web

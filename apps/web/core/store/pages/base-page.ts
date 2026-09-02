@@ -7,9 +7,9 @@
 import { set } from "lodash-es";
 import { action, computed, makeObservable, observable, reaction, runInAction } from "mobx";
 // plane imports
-import { EPageAccess } from "@plane/constants";
-import type { TChangeHandlerProps } from "@plane/propel/emoji-icon-picker";
-import type { TDocumentPayload, TLogoProps, TNameDescriptionLoader, TPage } from "@plane/types";
+import { EPageAccess } from "@dragonfruit/constants";
+import type { TChangeHandlerProps } from "@dragonfruit/propel/emoji-icon-picker";
+import type { TDocumentPayload, TLogoProps, TNameDescriptionLoader, TPage } from "@dragonfruit/types";
 // plane web store
 import { ExtendedBasePage } from "@/plane-web/store/pages/extended-base-page";
 import type { RootStore } from "@/plane-web/store/root.store";

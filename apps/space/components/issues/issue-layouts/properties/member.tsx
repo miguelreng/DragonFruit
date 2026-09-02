@@ -10,11 +10,11 @@ import type { ComponentType } from "react";
 import type { IconProps } from "@solar-icons/react";
 
 type LucideIcon = ComponentType<IconProps>;
-import { MembersPropertyIcon } from "@plane/propel/icons";
+import { MembersPropertyIcon } from "@dragonfruit/propel/icons";
 // plane ui
-import { Avatar, AvatarGroup } from "@plane/ui";
+import { Avatar, AvatarGroup } from "@dragonfruit/ui";
 // plane utils
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useMember } from "@/hooks/store/use-member";
 //

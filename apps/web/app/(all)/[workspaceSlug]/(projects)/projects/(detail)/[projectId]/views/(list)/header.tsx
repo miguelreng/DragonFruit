@@ -7,10 +7,10 @@
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // ui
-import { PROJECT_VIEW_TRACKER_ELEMENTS } from "@plane/constants";
-import { Button } from "@plane/propel/button";
+import { PROJECT_VIEW_TRACKER_ELEMENTS } from "@dragonfruit/constants";
+import { Button } from "@dragonfruit/propel/button";
 import { ViewsIcon } from "@/components/icons/propel-shim";
-import { Breadcrumbs, Header } from "@plane/ui";
+import { Breadcrumbs, Header } from "@dragonfruit/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { ViewListHeader } from "@/components/views/view-list-header";

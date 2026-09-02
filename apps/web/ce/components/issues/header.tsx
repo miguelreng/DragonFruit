@@ -12,14 +12,14 @@ import {
   EUserPermissionsLevel,
   IS_FAVORITE_MENU_OPEN,
   WORK_ITEM_TRACKER_ELEMENTS,
-} from "@plane/constants";
-import { useLocalStorage } from "@plane/hooks";
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { getIconButtonStyling } from "@plane/propel/icon-button";
-import { Tooltip } from "@plane/propel/tooltip";
-import { EIssuesStoreType } from "@plane/types";
-import { Breadcrumbs, FavoriteStar, Header } from "@plane/ui";
+} from "@dragonfruit/constants";
+import { useLocalStorage } from "@dragonfruit/hooks";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { getIconButtonStyling } from "@dragonfruit/propel/icon-button";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { EIssuesStoreType } from "@dragonfruit/types";
+import { Breadcrumbs, FavoriteStar, Header } from "@dragonfruit/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 // constants

@@ -10,8 +10,8 @@ import { useTheme } from "next-themes";
 import { ArrowRightLeft } from "@/components/icons/lucide-shim";
 import { Dialog, Transition } from "@headlessui/react";
 // ui
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
 // hooks
 import { useUser } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";

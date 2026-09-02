@@ -9,7 +9,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import { EditIcon, CloseIcon } from "@/components/icons/propel-shim";
 // types
-import type { IIssueLabel } from "@plane/types";
+import type { IIssueLabel } from "@dragonfruit/types";
 // hooks
 import { useLabel } from "@/hooks/store/use-label";
 // components

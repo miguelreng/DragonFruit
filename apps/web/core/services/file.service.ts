@@ -6,10 +6,10 @@
 
 import type { AxiosRequestConfig } from "axios";
 // plane types
-import { API_BASE_URL } from "@plane/constants";
-import { getFileMetaDataForUpload, generateFileUploadPayload } from "@plane/services";
-import type { EFileAssetType, TFileEntityInfo, TFileSignedURLResponse } from "@plane/types";
-import { getAssetIdFromUrl } from "@plane/utils";
+import { API_BASE_URL } from "@dragonfruit/constants";
+import { getFileMetaDataForUpload, generateFileUploadPayload } from "@dragonfruit/services";
+import type { EFileAssetType, TFileEntityInfo, TFileSignedURLResponse } from "@dragonfruit/types";
+import { getAssetIdFromUrl } from "@dragonfruit/utils";
 // helpers
 // services
 import { APIService } from "@/services/api.service";

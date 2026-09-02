@@ -6,12 +6,12 @@
 
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Bolt } from "@solar-icons/react/ssr";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 import { ListFilter, Sparkles, Plus, Minus, Maximize, X } from "@/components/icons/lucide-shim";
 import type { TWorkflowEdge, TWorkflowNode, TWorkflowNodeKind } from "@/services/workflow.service";
 import { FlowNode } from "./flow-node";
 import { nodeDisplay, nodeKindLabel, NODE_W } from "./builder-helpers";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 type AddKind = "condition" | "action";
 type Branch = "" | "true" | "false";

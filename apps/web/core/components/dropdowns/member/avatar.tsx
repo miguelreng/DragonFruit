@@ -7,9 +7,9 @@
 import { observer } from "mobx-react";
 import { MembersPropertyIcon } from "@/components/icons/propel-shim";
 // plane ui
-import type { IUserLite } from "@plane/types";
-import { Avatar, AvatarGroup } from "@plane/ui";
-import { cn, getFileURL } from "@plane/utils";
+import type { IUserLite } from "@dragonfruit/types";
+import { Avatar, AvatarGroup } from "@dragonfruit/ui";
+import { cn, getFileURL } from "@dragonfruit/utils";
 import type { LucideIcon } from "@/components/icons/lucide-shim";
 // hooks
 import { useMember } from "@/hooks/store/use-member";

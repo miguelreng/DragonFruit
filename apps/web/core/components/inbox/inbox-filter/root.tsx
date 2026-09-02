@@ -5,10 +5,10 @@
  */
 
 import { ListFilter } from "@/components/icons/lucide-shim";
-import { getButtonStyling } from "@plane/propel/button";
+import { getButtonStyling } from "@dragonfruit/propel/button";
 // plane imports
 import { ChevronDownIcon } from "@/components/icons/propel-shim";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // components
 import { FiltersDropdown } from "@/components/issues/issue-layouts/filters";
 // hooks

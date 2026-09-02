@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { CustomMenu } from "@plane/ui";
+import { CustomMenu } from "@dragonfruit/ui";
 // components
 import { ChevronDown } from "@/components/icons/lucide-shim";
 // services

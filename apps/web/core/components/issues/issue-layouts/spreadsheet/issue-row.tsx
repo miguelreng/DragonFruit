@@ -9,17 +9,17 @@ import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { GitBranch, MoreHorizontal } from "@/components/icons/lucide-shim";
-import { SPREADSHEET_SELECT_GROUP } from "@plane/constants";
+import { SPREADSHEET_SELECT_GROUP } from "@dragonfruit/constants";
 // plane helpers
-import { useOutsideClickDetector } from "@plane/hooks";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
 import { ChevronRightIcon } from "@/components/icons/propel-shim";
 // types
-import { Tooltip } from "@plane/propel/tooltip";
-import type { IIssueDisplayProperties, IProjectCustomField, TIssue } from "@plane/types";
-import { EIssueServiceType } from "@plane/types";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { IIssueDisplayProperties, IProjectCustomField, TIssue } from "@dragonfruit/types";
+import { EIssueServiceType } from "@dragonfruit/types";
 // ui
-import { ControlLink, ERowVariant, Row } from "@plane/ui";
-import { cn, generateWorkItemLink } from "@plane/utils";
+import { ControlLink, ERowVariant, Row } from "@dragonfruit/ui";
+import { cn, generateWorkItemLink } from "@dragonfruit/utils";
 // components
 import { MultipleSelectEntityAction } from "@/components/core/multiple-select";
 import RenderIfVisible from "@/components/core/render-if-visible-HOC";
@@ -36,7 +36,7 @@ import type { TRenderQuickActions } from "../list/list-view-types";
 import { isIssueNew } from "../utils";
 import { CustomFieldColumn } from "./custom-field-column";
 import { IssueColumn } from "./issue-column";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 interface Props {
   displayProperties: IIssueDisplayProperties;

@@ -6,9 +6,9 @@
 
 import { useEffect } from "react";
 // plane imports
-import type { EIssueLayoutTypes, IFavorite } from "@plane/types";
+import type { EIssueLayoutTypes, IFavorite } from "@dragonfruit/types";
 // components
-import { getPageName } from "@plane/utils";
+import { getPageName } from "@dragonfruit/utils";
 import {
   generateFavoriteItemLink,
   getFavoriteItemIcon,

@@ -6,10 +6,10 @@
 
 import { forwardRef, useMemo } from "react";
 // plane imports
-import { DocumentEditorWithRef } from "@plane/editor";
-import type { IEditorPropsExtended, EditorRefApi, IDocumentEditorProps, TFileHandler } from "@plane/editor";
-import type { MakeOptional, TSearchEntityRequestPayload, TSearchResponse } from "@plane/types";
-import { cn } from "@plane/utils";
+import { DocumentEditorWithRef } from "@dragonfruit/editor";
+import type { IEditorPropsExtended, EditorRefApi, IDocumentEditorProps, TFileHandler } from "@dragonfruit/editor";
+import type { MakeOptional, TSearchEntityRequestPayload, TSearchResponse } from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useEditorConfig, useEditorMention } from "@/hooks/editor";
 import { useMember } from "@/hooks/store/use-member";

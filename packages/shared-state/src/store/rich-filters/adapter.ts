@@ -5,7 +5,7 @@
  */
 
 // plane imports
-import type { IFilterAdapter, TExternalFilter, TFilterExpression, TFilterProperty } from "@plane/types";
+import type { IFilterAdapter, TExternalFilter, TFilterExpression, TFilterProperty } from "@dragonfruit/types";
 
 /**
  * Abstract base class for converting between external filter formats and internal filter expressions.

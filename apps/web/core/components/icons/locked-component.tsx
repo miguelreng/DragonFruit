@@ -5,7 +5,7 @@
  */
 
 import { LockIcon } from "@/components/icons/propel-shim";
-import { Tooltip } from "@plane/propel/tooltip";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 
 export function LockedComponent(props: { toolTipContent?: string }) {
   const { toolTipContent } = props;

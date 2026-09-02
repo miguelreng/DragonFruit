@@ -5,7 +5,7 @@
  */
 
 // plane imports
-import { RANDOM_EMOJI_CODES } from "@plane/constants";
+import { RANDOM_EMOJI_CODES } from "@dragonfruit/constants";
 
 /**
  * Converts a hyphen-separated hexadecimal emoji code to its decimal representation

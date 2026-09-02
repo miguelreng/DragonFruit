@@ -7,8 +7,8 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 // ui
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { AlertModalCore } from "@plane/ui";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { AlertModalCore } from "@dragonfruit/ui";
 // hooks
 import { useWebhook } from "@/hooks/store/use-webhook";
 import { useAppRouter } from "@/hooks/use-app-router";

@@ -8,7 +8,7 @@ import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { TableMap } from "@tiptap/pm/tables";
 import type { Editor } from "@tiptap/react";
 import { v4 as generateUuid } from "uuid";
-import { CheckSquare, Expand, MoveHorizontal } from "@plane/icons";
+import { CheckSquare, Expand, MoveHorizontal } from "@dragonfruit/icons";
 // constants
 import { CORE_EXTENSIONS } from "@/constants/extension";
 // plane editor types

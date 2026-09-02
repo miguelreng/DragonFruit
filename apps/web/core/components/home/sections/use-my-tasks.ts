@@ -5,7 +5,7 @@
  */
 
 import useSWR from "swr";
-import type { IState, TBaseIssue, TIssuesResponse } from "@plane/types";
+import type { IState, TBaseIssue, TIssuesResponse } from "@dragonfruit/types";
 import { UserService } from "@/services/user.service";
 
 export const MY_TASKS_PAGE_SIZE = 100;

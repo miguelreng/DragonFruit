@@ -7,8 +7,8 @@
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // components
-import { useTranslation } from "@plane/i18n";
-import { EmptyStateDetailed } from "@plane/propel/empty-state";
+import { useTranslation } from "@dragonfruit/i18n";
+import { EmptyStateDetailed } from "@dragonfruit/propel/empty-state";
 import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 
 // TODO: If projectViewId changes, everything breaks. Figure out a better way to handle this.

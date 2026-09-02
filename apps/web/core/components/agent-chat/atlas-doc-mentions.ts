@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { TIssue, TIssueSearchResponse, TPageSearchResponse, TProjectBookmark } from "@plane/types";
+import type { TIssue, TIssueSearchResponse, TPageSearchResponse, TProjectBookmark } from "@dragonfruit/types";
 
 const CONTEXT_LIMIT = 12_000;
 const CONTEXT_PER_REFERENCE_LIMIT = 2_500;

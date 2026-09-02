@@ -7,8 +7,8 @@
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
-import { Avatar } from "@plane/ui";
-import { calculateTimeAgo, getFileURL } from "@plane/utils";
+import { Avatar } from "@dragonfruit/ui";
+import { calculateTimeAgo, getFileURL } from "@dragonfruit/utils";
 import { ActivityMessage, IssueLink } from "@/components/core/activity";
 import { useUser } from "@/hooks/store/user";
 import { UserService } from "@/services/user.service";

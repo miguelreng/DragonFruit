@@ -7,8 +7,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Loader2, Sparkles, Wand2 } from "@/components/icons/lucide-shim";
 // plane imports
-import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 // services
 import { AIService } from "@/services/ai.service";
 import type { TTranscriptToDocResponse } from "@/services/ai.service";

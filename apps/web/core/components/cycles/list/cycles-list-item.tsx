@@ -10,10 +10,10 @@ import { observer } from "mobx-react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { CheckIcon } from "@/components/icons/propel-shim";
 // plane imports
-import type { TCycleGroups } from "@plane/types";
-import { CircularProgressIndicator } from "@plane/ui";
+import type { TCycleGroups } from "@dragonfruit/types";
+import { CircularProgressIndicator } from "@dragonfruit/ui";
 // components
-import { generateQueryParams, calculateCycleProgress } from "@plane/utils";
+import { generateQueryParams, calculateCycleProgress } from "@dragonfruit/utils";
 import { ListItem } from "@/components/core/list";
 // hooks
 import { useCycle } from "@/hooks/store/use-cycle";

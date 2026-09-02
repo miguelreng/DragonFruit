@@ -4,12 +4,12 @@
  * See the LICENSE file for details.
  */
 
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { CloseIcon } from "@/components/icons/propel-shim";
-import type { TModuleDisplayFilters, TModuleFilters } from "@plane/types";
+import type { TModuleDisplayFilters, TModuleFilters } from "@dragonfruit/types";
 // components
-import { Header, EHeaderVariant, Tag } from "@plane/ui";
-import { replaceUnderscoreIfSnakeCase } from "@plane/utils";
+import { Header, EHeaderVariant, Tag } from "@dragonfruit/ui";
+import { replaceUnderscoreIfSnakeCase } from "@dragonfruit/utils";
 import { AppliedDateFilters, AppliedMembersFilters, AppliedStatusFilters } from "@/components/modules";
 // helpers
 // types

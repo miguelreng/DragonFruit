@@ -5,11 +5,11 @@
  */
 
 import { observer } from "mobx-react";
-import { Logo } from "@plane/propel/emoji-icon-picker";
+import { Logo } from "@dragonfruit/propel/emoji-icon-picker";
 import { ProjectIcon } from "@/components/icons/propel-shim";
 // plane imports
-import type { ICustomSearchSelectOption } from "@plane/types";
-import { BreadcrumbNavigationSearchDropdown, Breadcrumbs } from "@plane/ui";
+import type { ICustomSearchSelectOption } from "@dragonfruit/types";
+import { BreadcrumbNavigationSearchDropdown, Breadcrumbs } from "@dragonfruit/ui";
 import { SwitcherLabel } from "@/components/common/switcher-label";
 // hooks
 import { useProject } from "@/hooks/store/use-project";

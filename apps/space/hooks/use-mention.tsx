@@ -7,8 +7,8 @@
 import { useRef, useEffect } from "react";
 import useSWR from "swr";
 // plane imports
-import { UserService } from "@plane/services";
-import type { IUser } from "@plane/types";
+import { UserService } from "@dragonfruit/services";
+import type { IUser } from "@dragonfruit/types";
 
 export const useMention = () => {
   const userService = new UserService();

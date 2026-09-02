@@ -9,12 +9,12 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // icons
 import { ListFilter } from "@/components/icons/lucide-shim";
-import { useOutsideClickDetector } from "@plane/hooks";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
 import { SearchIcon, CloseIcon } from "@/components/icons/propel-shim";
 // plane helpers
 // types
-import type { TCycleFilters } from "@plane/types";
-import { cn, calculateTotalFilters } from "@plane/utils";
+import type { TCycleFilters } from "@dragonfruit/types";
+import { cn, calculateTotalFilters } from "@dragonfruit/utils";
 // components
 import { ArchiveTabsList } from "@/components/archives";
 import { FiltersDropdown } from "@/components/issues/issue-layouts/filters";

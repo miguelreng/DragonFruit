@@ -27,9 +27,9 @@ import {
   MinusSquare,
   Palette,
   AlignCenter,
-} from "@plane/icons";
-import type { LucideIcon } from "@plane/icons";
-import { LinkIcon } from "@plane/propel/icons";
+} from "@dragonfruit/icons";
+import type { LucideIcon } from "@dragonfruit/icons";
+import { LinkIcon } from "@dragonfruit/propel/icons";
 // constants
 import { CORE_EXTENSIONS } from "@/constants/extension";
 // helpers
@@ -56,7 +56,7 @@ import {
 } from "@/helpers/editor-commands";
 // types
 import type { TCommandWithProps, TEditorCommands } from "@/types";
-import type { ISvgIcons } from "@plane/propel/icons";
+import type { ISvgIcons } from "@dragonfruit/propel/icons";
 type isActiveFunction<T extends TEditorCommands> = (params?: TCommandWithProps<T>) => boolean;
 type commandFunction<T extends TEditorCommands> = (params?: TCommandWithProps<T>) => void;
 

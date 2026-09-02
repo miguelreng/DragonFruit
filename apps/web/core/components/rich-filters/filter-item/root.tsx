@@ -7,7 +7,7 @@
 import React from "react";
 import { observer } from "mobx-react";
 // plane imports
-import type { IFilterInstance } from "@plane/shared-state";
+import type { IFilterInstance } from "@dragonfruit/shared-state";
 import type {
   SingleOrArray,
   TExternalFilter,
@@ -15,9 +15,9 @@ import type {
   TFilterValue,
   TFilterConditionNodeForDisplay,
   TAllAvailableOperatorsForDisplay,
-} from "@plane/types";
-import { CustomSearchSelect } from "@plane/ui";
-import { cn, getOperatorForPayload } from "@plane/utils";
+} from "@dragonfruit/types";
+import { CustomSearchSelect } from "@dragonfruit/ui";
+import { cn, getOperatorForPayload } from "@dragonfruit/utils";
 // local imports
 import { FilterValueInput } from "../filter-value-input/root";
 import { COMMON_FILTER_ITEM_BORDER_CLASSNAME } from "../shared";

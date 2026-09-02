@@ -8,9 +8,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import useSWR from "swr";
 // plane imports
-import { CustomMenu } from "@plane/ui";
-import type { TSearchEntityRequestPayload, TWebhookConnectionQueryParams } from "@plane/types";
-import { EFileAssetType } from "@plane/types";
+import { CustomMenu } from "@dragonfruit/ui";
+import type { TSearchEntityRequestPayload, TWebhookConnectionQueryParams } from "@dragonfruit/types";
+import { EFileAssetType } from "@dragonfruit/types";
 // components
 import { setActiveDocPageId } from "@/components/agent-chat/active-doc-page";
 import { LogoSpinner } from "@/components/common/logo-spinner";

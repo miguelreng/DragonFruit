@@ -6,12 +6,12 @@
 
 import { useState } from "react";
 import { observer } from "mobx-react";
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { EUserPermissions, EUserPermissionsLevel } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 // ui
-import { Button } from "@plane/propel/button";
-import { EIssuesStoreType } from "@plane/types";
-import { Breadcrumbs, Header } from "@plane/ui";
+import { Button } from "@dragonfruit/propel/button";
+import { EIssuesStoreType } from "@dragonfruit/types";
+import { Breadcrumbs, Header } from "@dragonfruit/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { CountChip } from "@/components/common/count-chip";

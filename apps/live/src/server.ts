@@ -13,8 +13,8 @@ import express from "express";
 import expressWs from "express-ws";
 import helmet from "helmet";
 // plane imports
-import { registerController } from "@plane/decorators";
-import { logger, loggerMiddleware } from "@plane/logger";
+import { registerController } from "@dragonfruit/decorators";
+import { logger, loggerMiddleware } from "@dragonfruit/logger";
 // controllers
 import { CONTROLLERS } from "@/controllers";
 // env

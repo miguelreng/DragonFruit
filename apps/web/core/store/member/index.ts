@@ -7,7 +7,7 @@
 import { makeObservable, observable } from "mobx";
 import { computedFn } from "mobx-utils";
 // plane imports
-import type { IUserLite } from "@plane/types";
+import type { IUserLite } from "@dragonfruit/types";
 // plane web imports
 import type { IProjectMemberStore } from "@/plane-web/store/member/project-member.store";
 import { ProjectMemberStore } from "@/plane-web/store/member/project-member.store";

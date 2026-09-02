@@ -8,9 +8,9 @@ import { Fragment, useState } from "react";
 import { usePopper } from "react-popper";
 import { Popover } from "@headlessui/react";
 // plane imports
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { CloseIcon } from "@/components/icons/propel-shim";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 export function ForgotPasswordPopover() {
   // popper-js refs

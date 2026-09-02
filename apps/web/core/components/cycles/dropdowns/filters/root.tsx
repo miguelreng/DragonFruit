@@ -8,7 +8,7 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import { SearchIcon, CloseIcon } from "@/components/icons/propel-shim";
 // plane imports
-import type { TCycleFilters, TCycleGroups } from "@plane/types";
+import type { TCycleFilters, TCycleGroups } from "@dragonfruit/types";
 // hooks
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // local imports

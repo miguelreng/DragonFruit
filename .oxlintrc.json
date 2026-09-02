@@ -62,7 +62,7 @@
       {
         "paths": [
           {
-            "name": "@plane/ui",
+            "name": "@dragonfruit/ui",
             "importNames": [
               "Button",
               "getButtonStyling",
@@ -76,19 +76,19 @@
               "Spinner",
               "CircularBarSpinner"
             ],
-            "message": "Un solo componente por slot. Button/Card/Tooltip/Spinner viven en @plane/propel/*. Ver Storybook -> Design System/Component Catalog."
+            "message": "Un solo componente por slot. Button/Card/Tooltip/Spinner viven en @dragonfruit/propel/*. Ver Storybook -> Design System/Component Catalog."
           },
           {
-            "name": "@plane/propel/avatar",
-            "message": "Avatar canonico: import { Avatar, AvatarGroup } from \"@plane/ui\"."
+            "name": "@dragonfruit/propel/avatar",
+            "message": "Avatar canonico: import { Avatar, AvatarGroup } from \"@dragonfruit/ui\"."
           },
           {
-            "name": "@plane/propel/menu",
-            "message": "Dropdown canonico: import { CustomMenu } from \"@plane/ui\"."
+            "name": "@dragonfruit/propel/menu",
+            "message": "Dropdown canonico: import { CustomMenu } from \"@dragonfruit/ui\"."
           },
           {
-            "name": "@plane/propel/skeleton",
-            "message": "Skeleton canonico: import { Loader } from \"@plane/ui\" y compone con <Loader.Item>."
+            "name": "@dragonfruit/propel/skeleton",
+            "message": "Skeleton canonico: import { Loader } from \"@dragonfruit/ui\" y compone con <Loader.Item>."
           }
         ]
       }

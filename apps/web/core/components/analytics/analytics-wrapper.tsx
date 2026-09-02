@@ -6,8 +6,8 @@
 
 import React from "react";
 // plane package imports
-import { useTranslation } from "@plane/i18n";
-import { cn } from "@plane/utils";
+import { useTranslation } from "@dragonfruit/i18n";
+import { cn } from "@dragonfruit/utils";
 
 type Props = {
   i18nTitle: string;

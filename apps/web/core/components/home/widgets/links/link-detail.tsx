@@ -7,13 +7,13 @@
 import { useCallback, useMemo } from "react";
 import { observer } from "mobx-react";
 
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { LinkIcon, NewTabIcon, EditIcon, TrashIcon } from "@/components/icons/propel-shim";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TContextMenuItem } from "@plane/ui";
-import { LinkItemBlock } from "@plane/ui";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TContextMenuItem } from "@dragonfruit/ui";
+import { LinkItemBlock } from "@dragonfruit/ui";
 // plane utils
-import { copyTextToClipboard } from "@plane/utils";
+import { copyTextToClipboard } from "@dragonfruit/utils";
 // hooks
 import { useHome } from "@/hooks/store/use-home";
 // types

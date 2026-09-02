@@ -12,12 +12,12 @@ import { CirclePlus, Download, LogOut2, Mails, Settings, Settings2, UserPlus } f
 // ui
 import { Menu, Transition } from "@headlessui/react";
 // plane imports
-import { EUserPermissions } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { EUserPermissions } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 import { ChevronDownIcon } from "@/components/icons/propel-shim";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IWorkspace } from "@plane/types";
-import { orderWorkspacesList, cn } from "@plane/utils";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { IWorkspace } from "@dragonfruit/types";
+import { orderWorkspacesList, cn } from "@dragonfruit/utils";
 import { AppSidebarTooltip } from "@/components/sidebar/sidebar-item";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";

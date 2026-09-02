@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 // plane imports
-import { API_BASE_URL } from "@plane/constants";
+import { API_BASE_URL } from "@dragonfruit/constants";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import type { Route } from "./+types/page";

@@ -8,9 +8,9 @@ import { Fragment } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import type { ICycle, TCycleEstimateType } from "@plane/types";
-import { Loader } from "@plane/ui";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { ICycle, TCycleEstimateType } from "@dragonfruit/types";
+import { Loader } from "@dragonfruit/ui";
 // components
 import ProgressChart from "@/components/core/sidebar/progress-chart";
 import { SimpleEmptyState } from "@/components/empty-state/simple-empty-state-root";

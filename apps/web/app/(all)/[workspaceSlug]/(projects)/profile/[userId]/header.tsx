@@ -9,10 +9,10 @@ import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ChevronRight, PanelRight } from "@/components/icons/lucide-shim";
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { YourWorkIcon } from "@/components/icons/propel-shim";
-import type { IUserProfileProjectSegregation, TBaseIssue } from "@plane/types";
-import { Breadcrumbs, Header } from "@plane/ui";
+import type { IUserProfileProjectSegregation, TBaseIssue } from "@dragonfruit/types";
+import { Breadcrumbs, Header } from "@dragonfruit/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { MyTasksFilterPills } from "@/components/home/sections/my-tasks-filter-pills";
@@ -22,7 +22,7 @@ import { ProfileIssuesFilter } from "@/components/profile/profile-issues-filter"
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useProjectState } from "@/hooks/store/use-project-state";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
-import { Button, getButtonStyling } from "@plane/propel/button";
+import { Button, getButtonStyling } from "@dragonfruit/propel/button";
 
 type TUserProfileHeader = {
   userProjectsData: IUserProfileProjectSegregation | undefined;

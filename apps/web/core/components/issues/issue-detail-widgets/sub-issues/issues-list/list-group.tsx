@@ -7,11 +7,11 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 import { ChevronRight, CircleDashed } from "@/components/icons/lucide-shim";
-import { ALL_ISSUES } from "@plane/constants";
-import type { IGroupByColumn, TIssue, TIssueServiceType, TSubIssueOperations } from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
-import { Collapsible } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { ALL_ISSUES } from "@dragonfruit/constants";
+import type { IGroupByColumn, TIssue, TIssueServiceType, TSubIssueOperations } from "@dragonfruit/types";
+import { EIssuesStoreType } from "@dragonfruit/types";
+import { Collapsible } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 import { SubIssuesListItem } from "./list-item";
 
 interface TSubIssuesListGroupProps {

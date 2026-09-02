@@ -9,7 +9,7 @@
 import { set } from "lodash-es";
 import { action, computed, makeObservable, observable, runInAction } from "mobx";
 // types
-import type { IEstimate, IEstimatePoint as IEstimatePointType } from "@plane/types";
+import type { IEstimate, IEstimatePoint as IEstimatePointType } from "@dragonfruit/types";
 // plane web services
 import estimateService from "@/services/estimate.service";
 // store

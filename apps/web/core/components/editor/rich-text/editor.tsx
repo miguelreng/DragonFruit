@@ -6,10 +6,10 @@
 
 import { forwardRef, useMemo } from "react";
 // plane imports
-import { RichTextEditorWithRef } from "@plane/editor";
-import type { EditorRefApi, IRichTextEditorProps, TFileHandler } from "@plane/editor";
-import type { MakeOptional, TSearchEntityRequestPayload, TSearchResponse } from "@plane/types";
-import { cn } from "@plane/utils";
+import { RichTextEditorWithRef } from "@dragonfruit/editor";
+import type { EditorRefApi, IRichTextEditorProps, TFileHandler } from "@dragonfruit/editor";
+import type { MakeOptional, TSearchEntityRequestPayload, TSearchResponse } from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 // components
 import { EditorMentionsRoot } from "@/components/editor/embeds/mentions";
 // hooks

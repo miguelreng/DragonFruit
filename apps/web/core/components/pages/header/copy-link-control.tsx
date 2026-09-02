@@ -10,7 +10,7 @@ import { observer } from "mobx-react";
 import { Share2 } from "@/components/icons/lucide-shim";
 import { CheckIcon } from "@/components/icons/propel-shim";
 // plane imports
-import { Button } from "@plane/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 // hooks
 import { usePageOperations } from "@/hooks/use-page-operations";
 // store

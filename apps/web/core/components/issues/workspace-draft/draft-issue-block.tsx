@@ -10,12 +10,12 @@ import { observer } from "mobx-react";
 import { SquareStackIcon } from "@/components/icons/lucide-shim";
 import { CopyIcon, EditIcon, TrashIcon } from "@/components/icons/propel-shim";
 // plane utils
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TWorkspaceDraftIssue } from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
-import type { TContextMenuItem } from "@plane/ui";
-import { Row } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TWorkspaceDraftIssue } from "@dragonfruit/types";
+import { EIssuesStoreType } from "@dragonfruit/types";
+import type { TContextMenuItem } from "@dragonfruit/ui";
+import { Row } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useProject } from "@/hooks/store/use-project";

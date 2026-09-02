@@ -6,9 +6,9 @@
 
 import React from "react";
 // plane imports
-import { AreaChart } from "@plane/propel/charts/area-chart";
-import type { TChartData, TModuleCompletionChartDistribution } from "@plane/types";
-import { renderFormattedDateWithoutYear } from "@plane/utils";
+import { AreaChart } from "@dragonfruit/propel/charts/area-chart";
+import type { TChartData, TModuleCompletionChartDistribution } from "@dragonfruit/types";
+import { renderFormattedDateWithoutYear } from "@dragonfruit/utils";
 
 type Props = {
   distribution: TModuleCompletionChartDistribution;

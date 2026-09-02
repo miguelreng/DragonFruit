@@ -11,10 +11,10 @@ import { useDropzone } from "react-dropzone";
 import { UploadCloud } from "@/components/icons/lucide-shim";
 import { HardDrive } from "@/components/icons/lucide-shim";
 import { pickGoogleDriveFile } from "@/components/google-drive/google-drive-picker";
-import { useTranslation } from "@plane/i18n";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TIssueServiceType } from "@plane/types";
-import { EIssueServiceType } from "@plane/types";
+import { useTranslation } from "@dragonfruit/i18n";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TIssueServiceType } from "@dragonfruit/types";
+import { EIssueServiceType } from "@dragonfruit/types";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 // plane web hooks

@@ -9,21 +9,21 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { usePathname } from "next/navigation";
 // plane imports
-import type { EditorRefApi } from "@plane/editor";
-import { useHashScroll } from "@plane/hooks";
+import type { EditorRefApi } from "@dragonfruit/editor";
+import { useHashScroll } from "@dragonfruit/hooks";
 import { GlobeIcon, LockIcon } from "@/components/icons/propel-shim";
-import { EIssueCommentAccessSpecifier } from "@plane/types";
-import type { TCommentsOperations, TIssueComment } from "@plane/types";
-import { calculateTimeAgo, cn, getFileURL, renderFormattedDate, renderFormattedTime } from "@plane/utils";
+import { EIssueCommentAccessSpecifier } from "@dragonfruit/types";
+import type { TCommentsOperations, TIssueComment } from "@dragonfruit/types";
+import { calculateTimeAgo, cn, getFileURL, renderFormattedDate, renderFormattedTime } from "@dragonfruit/utils";
 // components
 import { LiteTextEditor } from "@/components/editor/lite-text";
 // local imports
 import { CommentReactions } from "../comment-reaction";
 import { CommentReplies } from "../comment-replies";
 import { CommentCardEditForm } from "./edit-form";
-import { EmojiReactionButton, EmojiReactionPicker } from "@plane/propel/emoji-reaction";
-import { Avatar } from "@plane/ui";
-import { Tooltip } from "@plane/propel/tooltip";
+import { EmojiReactionButton, EmojiReactionPicker } from "@dragonfruit/propel/emoji-reaction";
+import { Avatar } from "@dragonfruit/ui";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 import { useMember } from "@/hooks/store/use-member";
 
 export type TCommentCardDisplayProps = {

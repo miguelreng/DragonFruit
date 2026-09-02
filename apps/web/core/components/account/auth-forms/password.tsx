@@ -10,13 +10,13 @@ import Link from "next/link";
 // icons
 import { Eye, EyeOff, Info, XCircle } from "@/components/icons/lucide-shim";
 // plane imports
-import { API_BASE_URL, E_PASSWORD_STRENGTH, AUTH_TRACKER_ELEMENTS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
+import { API_BASE_URL, E_PASSWORD_STRENGTH, AUTH_TRACKER_ELEMENTS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
 import { CloseIcon } from "@/components/icons/propel-shim";
-import { Input, PasswordStrengthIndicator } from "@plane/ui";
-import { Spinner } from "@plane/propel/spinners";
-import { getPasswordStrength } from "@plane/utils";
+import { Input, PasswordStrengthIndicator } from "@dragonfruit/ui";
+import { Spinner } from "@dragonfruit/propel/spinners";
+import { getPasswordStrength } from "@dragonfruit/utils";
 // components
 import { ForgotPasswordPopover } from "@/components/account/auth-forms/forgot-password-popover";
 // constants

@@ -7,8 +7,8 @@
 "use client";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { EUserPermissions, EUserPermissionsLevel } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 import Link from "next/link";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
@@ -31,11 +31,11 @@ import {
   Widget,
 } from "@solar-icons/react/ssr";
 import { ChevronRightIcon, CopyIcon, EditIcon, PlusIcon, TrashIcon } from "@/components/icons/propel-shim";
-import { Logo } from "@plane/propel/emoji-icon-picker";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { CustomMenu, EModalPosition, EModalWidth, Input, Loader, ModalCore, Sortable } from "@plane/ui";
-import { cn, copyTextToClipboard, generateWorkItemLink, getPageName } from "@plane/utils";
+import { Logo } from "@dragonfruit/propel/emoji-icon-picker";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { CustomMenu, EModalPosition, EModalWidth, Input, Loader, ModalCore, Sortable } from "@dragonfruit/ui";
+import { cn, copyTextToClipboard, generateWorkItemLink, getPageName } from "@dragonfruit/utils";
 import { orderBy } from "lodash-es";
 import { NotificationsBell } from "@/plane-web/components/navigations/notifications-bell";
 // components
@@ -69,9 +69,9 @@ import type {
   TPageEntityData,
   TPartialProject,
   TProjectEntityData,
-} from "@plane/types";
+} from "@dragonfruit/types";
 import { DeleteProjectModal } from "@/components/project/delete-project-modal";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 const workspaceService = new WorkspaceService();
 

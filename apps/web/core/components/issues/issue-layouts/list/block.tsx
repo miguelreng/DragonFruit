@@ -13,14 +13,14 @@ import { useParams } from "next/navigation";
 import { GitBranch } from "@/components/icons/lucide-shim";
 import { ChevronRightIcon } from "@/components/icons/propel-shim";
 // types
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TIssue, IIssueDisplayProperties, TIssueMap } from "@plane/types";
-import { EIssueServiceType } from "@plane/types";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TIssue, IIssueDisplayProperties, TIssueMap } from "@dragonfruit/types";
+import { EIssueServiceType } from "@dragonfruit/types";
 // ui
-import { ControlLink, Row } from "@plane/ui";
-import { Spinner } from "@plane/propel/spinners";
-import { cn, generateWorkItemLink } from "@plane/utils";
+import { ControlLink, Row } from "@dragonfruit/ui";
+import { Spinner } from "@dragonfruit/propel/spinners";
+import { cn, generateWorkItemLink } from "@dragonfruit/utils";
 // components
 import { MultipleSelectEntityAction } from "@/components/core/multiple-select";
 import { IssueProperties } from "@/components/issues/issue-layouts/properties";
@@ -38,7 +38,7 @@ import { IssueStats } from "@/plane-web/components/issues/issue-layouts/issue-st
 import { WithDisplayPropertiesHOC } from "../properties/with-display-properties-HOC";
 import { calculateIdentifierWidth } from "../utils";
 import type { TRenderQuickActions } from "./list-view-types";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 interface IssueBlockProps {
   issueId: string;

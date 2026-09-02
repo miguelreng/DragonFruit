@@ -8,16 +8,16 @@ import { useEffect, useRef, useState } from "react";
 import type { Placement } from "@popperjs/core";
 import { observer } from "mobx-react";
 // plane helpers
-import { useOutsideClickDetector } from "@plane/hooks";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
 // i18n
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { LabelPropertyIcon } from "@/components/icons/propel-shim";
 // types
-import { Tooltip } from "@plane/propel/tooltip";
-import type { IIssueLabel } from "@plane/types";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { IIssueLabel } from "@dragonfruit/types";
 // ui
 // hooks
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 import { useLabel } from "@/hooks/store/use-label";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 import { LabelDropdown } from "./label-dropdown";

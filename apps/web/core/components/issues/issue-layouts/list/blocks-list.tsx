@@ -8,7 +8,7 @@ import type { MutableRefObject } from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 // components
-import type { TIssue, IIssueDisplayProperties, TIssueMap, TGroupedIssues } from "@plane/types";
+import type { TIssue, IIssueDisplayProperties, TIssueMap, TGroupedIssues } from "@dragonfruit/types";
 // hooks
 import type { TSelectionHelper } from "@/hooks/use-multiple-select";
 // types

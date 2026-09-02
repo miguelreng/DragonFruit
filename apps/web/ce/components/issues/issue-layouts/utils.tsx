@@ -7,7 +7,7 @@
 import type { FC } from "react";
 import { CalendarDays, LayersIcon, Paperclip } from "@/components/icons/lucide-shim";
 // types
-import { ISSUE_GROUP_BY_OPTIONS } from "@plane/constants";
+import { ISSUE_GROUP_BY_OPTIONS } from "@dragonfruit/constants";
 import type { ISvgIcons } from "@/components/icons/propel-shim";
 import {
   LinkIcon,
@@ -27,7 +27,7 @@ import type {
   TGetColumns,
   TIssueGroupByOptions,
   TSpreadsheetColumn,
-} from "@plane/types";
+} from "@dragonfruit/types";
 // components
 import {
   SpreadsheetAssigneeColumn,

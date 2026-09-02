@@ -8,12 +8,12 @@ import { useRef } from "react";
 import { observer } from "mobx-react";
 import { Link as CopyLinkIcon } from "@/components/icons/lucide-shim";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { IconButton } from "@plane/propel/icon-button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import { EIssuesStoreType } from "@plane/types";
-import { generateWorkItemLink, copyTextToClipboard } from "@plane/utils";
+import { useTranslation } from "@dragonfruit/i18n";
+import { IconButton } from "@dragonfruit/propel/icon-button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { EIssuesStoreType } from "@dragonfruit/types";
+import { generateWorkItemLink, copyTextToClipboard } from "@dragonfruit/utils";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useIssues } from "@/hooks/store/use-issues";

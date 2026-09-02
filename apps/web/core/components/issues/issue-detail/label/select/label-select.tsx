@@ -10,13 +10,13 @@ import { usePopper } from "react-popper";
 import { Check as CheckIcon, Loader, Plus as PlusIcon, Search as SearchIcon } from "@/components/icons/lucide-shim";
 import { Combobox } from "@headlessui/react";
 // plane imports
-import { EUserPermissionsLevel, getRandomLabelColor } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import type { IIssueLabel } from "@plane/types";
-import { EUserProjectRoles } from "@plane/types";
+import { EUserPermissionsLevel, getRandomLabelColor } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import type { IIssueLabel } from "@dragonfruit/types";
+import { EUserProjectRoles } from "@dragonfruit/types";
 // helpers
-import { getTabIndex } from "@plane/utils";
+import { getTabIndex } from "@dragonfruit/utils";
 // hooks
 import { useLabel } from "@/hooks/store/use-label";
 import { useUserPermissions } from "@/hooks/store/user";

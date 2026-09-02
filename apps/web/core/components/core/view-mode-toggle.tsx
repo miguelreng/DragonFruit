@@ -7,8 +7,8 @@
 import type { ComponentType } from "react";
 import { GridIconShim as GridIcon, List as ListViewIcon } from "@/components/icons/lucide-shim";
 // plane utils
-import { cn } from "@plane/utils";
-import { IconButton } from "@plane/propel/icon-button";
+import { cn } from "@dragonfruit/utils";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 export type ViewMode = "list" | "grid";
 

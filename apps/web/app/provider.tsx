@@ -8,11 +8,11 @@ import { Suspense } from "react";
 import { useTheme } from "next-themes";
 import { SWRConfig } from "swr";
 // DragonFruit Imports
-import { WEB_SWR_CONFIG } from "@plane/constants";
-import { TranslationProvider } from "@plane/i18n";
-import { Toast } from "@plane/propel/toast";
+import { WEB_SWR_CONFIG } from "@dragonfruit/constants";
+import { TranslationProvider } from "@dragonfruit/i18n";
+import { Toast } from "@dragonfruit/propel/toast";
 // helpers
-import { resolveGeneralTheme } from "@plane/utils";
+import { resolveGeneralTheme } from "@dragonfruit/utils";
 import { AppLoadingScreen } from "@/components/common/app-loading-screen";
 import { MobileAppInstallPrompt } from "@/components/pwa/mobile-app-install-prompt";
 import AppProgressBar from "@/lib/b-progress/AppProgressBar";

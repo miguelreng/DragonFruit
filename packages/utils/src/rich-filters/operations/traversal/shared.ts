@@ -10,7 +10,7 @@ import type {
   TFilterExpression,
   TFilterProperty,
   TSupportedOperators,
-} from "@plane/types";
+} from "@dragonfruit/types";
 
 /**
  * Helper function to get the display operator for a condition.

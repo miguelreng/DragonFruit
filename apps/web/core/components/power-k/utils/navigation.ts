@@ -5,7 +5,7 @@
  */
 
 // plane imports
-import { joinUrlPath } from "@plane/utils";
+import { joinUrlPath } from "@dragonfruit/utils";
 // local imports
 import type { TPowerKContext } from "../core/types";
 

@@ -6,11 +6,11 @@
 
 import { ArrowDownWideNarrow, ArrowUpWideNarrow } from "@/components/icons/lucide-shim";
 // plane imports
-import { getButtonStyling } from "@plane/propel/button";
+import { getButtonStyling } from "@dragonfruit/propel/button";
 // types
 import { CheckIcon } from "@/components/icons/propel-shim";
-import type { TPageFiltersSortBy, TPageFiltersSortKey } from "@plane/types";
-import { CustomMenu } from "@plane/ui";
+import type { TPageFiltersSortBy, TPageFiltersSortKey } from "@dragonfruit/types";
+import { CustomMenu } from "@dragonfruit/ui";
 
 type Props = {
   onChange: (value: { key?: TPageFiltersSortKey; order?: TPageFiltersSortBy }) => void;

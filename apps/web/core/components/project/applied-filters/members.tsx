@@ -7,9 +7,9 @@
 import { observer } from "mobx-react";
 import { CloseIcon } from "@/components/icons/propel-shim";
 // ui
-import { Avatar } from "@plane/ui";
+import { Avatar } from "@dragonfruit/ui";
 // helpers
-import { getFileURL } from "@plane/utils";
+import { getFileURL } from "@dragonfruit/utils";
 // types
 import { useMember } from "@/hooks/store/use-member";
 

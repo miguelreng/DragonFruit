@@ -8,10 +8,10 @@ import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
 import { Telescope } from "@solar-icons/react/ssr";
 // plane imports
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IInstance, IInstanceAdmin } from "@plane/types";
-import { Input, ToggleSwitch } from "@plane/ui";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { IInstance, IInstanceAdmin } from "@dragonfruit/types";
+import { Input, ToggleSwitch } from "@dragonfruit/ui";
 // components
 import { ControllerInput } from "@/components/common/controller-input";
 // hooks

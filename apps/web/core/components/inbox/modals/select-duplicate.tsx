@@ -8,11 +8,11 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Combobox } from "@headlessui/react";
 // plane imports
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { SearchIcon } from "@/components/icons/propel-shim";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { ISearchIssueResponse } from "@plane/types";
-import { Loader, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { ISearchIssueResponse } from "@dragonfruit/types";
+import { Loader, EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
 // components
 import { SimpleEmptyState } from "@/components/empty-state/simple-empty-state-root";
 // hooks

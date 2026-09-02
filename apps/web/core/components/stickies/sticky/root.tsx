@@ -9,9 +9,9 @@ import { debounce } from "lodash-es";
 import { observer } from "mobx-react";
 import { Minimize2 } from "@/components/icons/lucide-shim";
 // plane types
-import type { TSticky } from "@plane/types";
+import type { TSticky } from "@dragonfruit/types";
 // plane utils
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 import { CreateFromStickyModal, type TStickyTargetSnapshot } from "@/components/stickies/create-from-sticky";
 // hooks
 import { useSticky } from "@/hooks/use-stickies";

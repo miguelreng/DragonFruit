@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 import { Collapse } from "@/components/common/collapse";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 import {
   useCallback,
@@ -50,13 +50,13 @@ import {
   Whiteboard,
   X,
 } from "@/components/icons/lucide-shim";
-import { Button, getButtonStyling } from "@plane/propel/button";
-import { Logo } from "@plane/propel/emoji-icon-picker";
-import { EmptyStateDetailed } from "@plane/propel/empty-state";
+import { Button, getButtonStyling } from "@dragonfruit/propel/button";
+import { Logo } from "@dragonfruit/propel/emoji-icon-picker";
+import { EmptyStateDetailed } from "@dragonfruit/propel/empty-state";
 import { GlobeIcon, PageIcon } from "@/components/icons/propel-shim";
 import { ArchiveRestoreIcon } from "@/components/icons/lucide-shim";
 import { Folder as SolarFolder, Home as SolarHome } from "@solar-icons/react/ssr";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
 import {
   AlertModalCore,
   Avatar,
@@ -67,10 +67,10 @@ import {
   EModalWidth,
   Header,
   ModalCore,
-} from "@plane/ui";
-import { cn, convertBytesToSize, copyUrlToClipboard, getFileURL, getPageName, renderFormattedDate } from "@plane/utils";
-import { EPageAccess } from "@plane/types";
-import type { TPage, TPageType } from "@plane/types";
+} from "@dragonfruit/ui";
+import { cn, convertBytesToSize, copyUrlToClipboard, getFileURL, getPageName, renderFormattedDate } from "@dragonfruit/utils";
+import { EPageAccess } from "@dragonfruit/types";
+import type { TPage, TPageType } from "@dragonfruit/types";
 import { AppHeader } from "@/components/core/app-header";
 import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
@@ -83,7 +83,7 @@ import { useFavorite } from "@/hooks/store/use-favorite";
 import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
-import { EUserPermissions } from "@plane/constants";
+import { EUserPermissions } from "@dragonfruit/constants";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 import useLocalStorage from "@/hooks/use-local-storage";
 import { normalizeTags } from "@/helpers/tags";

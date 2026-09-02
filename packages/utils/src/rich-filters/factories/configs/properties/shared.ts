@@ -5,8 +5,8 @@
  */
 
 // plane imports
-import type { IProject, IUserLite, TOperatorConfigMap, TSupportedOperators } from "@plane/types";
-import { COMPARISON_OPERATOR, EQUALITY_OPERATOR } from "@plane/types";
+import type { IProject, IUserLite, TOperatorConfigMap, TSupportedOperators } from "@dragonfruit/types";
+import { COMPARISON_OPERATOR, EQUALITY_OPERATOR } from "@dragonfruit/types";
 // local imports
 import { getDatePickerConfig, getDateRangePickerConfig, getMultiSelectConfig } from "../core";
 import type { IFilterIconConfig, TCreateDateFilterParams, TCreateFilterConfigParams, TFilterIconType } from "../shared";

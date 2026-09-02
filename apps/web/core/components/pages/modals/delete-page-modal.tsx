@@ -8,9 +8,9 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 // ui
 import { useParams } from "next/navigation";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { AlertModalCore } from "@plane/ui";
-import { getPageName } from "@plane/utils";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { AlertModalCore } from "@dragonfruit/ui";
+import { getPageName } from "@dragonfruit/utils";
 // constants
 import { isBriefPage } from "@/components/project/brief/constants";
 // plane web hooks

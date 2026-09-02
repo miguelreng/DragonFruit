@@ -6,11 +6,11 @@
 
 import { observer } from "mobx-react";
 import { Disclosure } from "@headlessui/react";
-import { EmptyStateDetailed } from "@plane/propel/empty-state";
+import { EmptyStateDetailed } from "@dragonfruit/propel/empty-state";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import type { ICycle } from "@plane/types";
-import { Row } from "@plane/ui";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { ICycle } from "@dragonfruit/types";
+import { Row } from "@dragonfruit/ui";
 // components
 import { ActiveCycleStats } from "@/components/cycles/active-cycle/cycle-stats";
 import { ActiveCycleProductivity } from "@/components/cycles/active-cycle/productivity";

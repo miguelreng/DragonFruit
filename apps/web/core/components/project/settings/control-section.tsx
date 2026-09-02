@@ -8,9 +8,9 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "react-router";
 // plane imports
-import { PROJECT_TRACKER_ELEMENTS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
+import { PROJECT_TRACKER_ELEMENTS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
 // components
 import { SettingsBoxedControlItem } from "@/components/settings/boxed-control-item";
 // hooks

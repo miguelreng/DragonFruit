@@ -5,9 +5,9 @@
  */
 
 import { useForm } from "react-hook-form";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IFormattedInstanceConfiguration, TInstanceImageConfigurationKeys } from "@plane/types";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { IFormattedInstanceConfiguration, TInstanceImageConfigurationKeys } from "@dragonfruit/types";
 // components
 import { ControllerInput } from "@/components/common/controller-input";
 // hooks

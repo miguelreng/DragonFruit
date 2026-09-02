@@ -6,9 +6,9 @@
 
 import { observer } from "mobx-react";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { Avatar } from "@plane/ui";
-import { getFileURL } from "@plane/utils";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Avatar } from "@dragonfruit/ui";
+import { getFileURL } from "@dragonfruit/utils";
 // assets
 import userImage from "@/app/assets/user.png?url";
 // components

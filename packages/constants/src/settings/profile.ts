@@ -5,7 +5,7 @@
  */
 
 // plane imports
-import type { TProfileSettingsTabs } from "@plane/types";
+import type { TProfileSettingsTabs } from "@dragonfruit/types";
 
 export enum PROFILE_SETTINGS_CATEGORY {
   YOUR_PROFILE = "your profile",

@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import { Star } from "@/components/icons/lucide-shim";
 // ui
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 // hooks
 import { usePageOperations } from "@/hooks/use-page-operations";
 // store

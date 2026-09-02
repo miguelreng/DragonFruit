@@ -6,8 +6,8 @@
 
 // plane imports
 import { CloseIcon, ModuleIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
-import { Tooltip } from "@plane/propel/tooltip";
-import { cn } from "@plane/utils";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useModule } from "@/hooks/store/use-module";
 import { usePlatformOS } from "@/hooks/use-platform-os";

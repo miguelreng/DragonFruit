@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 // plane imports
-import type { TIssueIdentifierProps, TIssueTypeIdentifier } from "@plane/types";
+import type { TIssueIdentifierProps, TIssueTypeIdentifier } from "@dragonfruit/types";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useProject } from "@/hooks/store/use-project";

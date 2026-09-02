@@ -5,7 +5,7 @@
  */
 
 // plane imports
-import { EUserPermissions, EProjectFeatureKey } from "@plane/constants";
+import { EUserPermissions, EProjectFeatureKey } from "@dragonfruit/constants";
 import { Calendar, Checklist, Document, Eye, Inbox, Layers } from "@solar-icons/react/ssr";
 // components
 import type { TNavigationItem } from "@/components/workspace/sidebar/project-navigation";

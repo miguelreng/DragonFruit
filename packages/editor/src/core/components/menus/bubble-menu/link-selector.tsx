@@ -5,12 +5,12 @@
  */
 
 import type { Editor } from "@tiptap/core";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 import { useCallback, useRef, useState } from "react";
-import { LinkIcon, TrashIcon, CheckIcon } from "@plane/propel/icons";
+import { LinkIcon, TrashIcon, CheckIcon } from "@dragonfruit/propel/icons";
 // plane imports
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // constants
 import { CORE_EXTENSIONS } from "@/constants/extension";
 // helpers

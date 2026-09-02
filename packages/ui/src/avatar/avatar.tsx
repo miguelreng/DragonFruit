@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 // ui
-import { Tooltip } from "@plane/propel/tooltip";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 // helpers
 import { cn } from "../utils";
 import type { TAvatarSize } from "./helper";

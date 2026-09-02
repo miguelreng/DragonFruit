@@ -15,13 +15,13 @@ import {
   EUserPermissions,
   EUserPermissionsLevel,
   WORK_ITEM_TRACKER_ELEMENTS,
-} from "@plane/constants";
-import { Button } from "@plane/propel/button";
+} from "@dragonfruit/constants";
+import { Button } from "@dragonfruit/propel/button";
 import { LockIcon, ViewsIcon } from "@/components/icons/propel-shim";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { ICustomSearchSelectOption, IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@plane/types";
-import { EIssuesStoreType, EViewAccess, EIssueLayoutTypes } from "@plane/types";
-import { Breadcrumbs, Header, BreadcrumbNavigationSearchDropdown } from "@plane/ui";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { ICustomSearchSelectOption, IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@dragonfruit/types";
+import { EIssuesStoreType, EViewAccess, EIssueLayoutTypes } from "@dragonfruit/types";
+import { Breadcrumbs, Header, BreadcrumbNavigationSearchDropdown } from "@dragonfruit/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { SwitcherIcon, SwitcherLabel } from "@/components/common/switcher-label";

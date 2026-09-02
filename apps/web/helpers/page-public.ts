@@ -4,9 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import { SPACE_BASE_URL } from "@plane/constants";
-import type { TPageType } from "@plane/types";
-import { validateSlug } from "@plane/utils";
+import { SPACE_BASE_URL } from "@dragonfruit/constants";
+import type { TPageType } from "@dragonfruit/types";
+import { validateSlug } from "@dragonfruit/utils";
 
 type TPageLike = {
   id?: string;

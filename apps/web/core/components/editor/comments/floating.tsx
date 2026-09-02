@@ -7,8 +7,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePopper } from "react-popper";
 // plane imports
-import type { EditorRefApi } from "@plane/editor";
-import { cn, isCommentEmpty } from "@plane/utils";
+import type { EditorRefApi } from "@dragonfruit/editor";
+import { cn, isCommentEmpty } from "@dragonfruit/utils";
 // components
 import { Check, Loader2, X } from "@/components/icons/lucide-shim";
 import { LiteTextEditor } from "@/components/editor/lite-text";

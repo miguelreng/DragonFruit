@@ -5,9 +5,9 @@
  */
 
 import { Mail, MessageCircle, MessageSquare } from "@/components/icons/lucide-shim";
-import { EProductSubscriptionEnum } from "@plane/types";
+import { EProductSubscriptionEnum } from "@dragonfruit/types";
 // plane imports
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 
 export type TPlanFeatureData = React.ReactNode | boolean | null;
 

@@ -7,8 +7,8 @@
 import React from "react";
 import { observer } from "mobx-react";
 // plane imports
-import type { TIssue, TIssueServiceType } from "@plane/types";
-import { EIssueServiceType } from "@plane/types";
+import type { TIssue, TIssueServiceType } from "@dragonfruit/types";
+import { EIssueServiceType } from "@dragonfruit/types";
 // DragonFruit-web imports
 import type { TIssueRelationTypes } from "@/plane-web/types";
 // local imports

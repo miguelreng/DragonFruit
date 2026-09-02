@@ -12,12 +12,12 @@ import {
   extractClosestEdge,
   type Edge,
 } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
-import { EPageAccess } from "@plane/constants";
-import { Button, getButtonStyling } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TPage } from "@plane/types";
-import { DropIndicator, EModalPosition, EModalWidth, ModalCore, ToggleSwitch } from "@plane/ui";
-import { cn, copyUrlToClipboard, getPageName } from "@plane/utils";
+import { EPageAccess } from "@dragonfruit/constants";
+import { Button, getButtonStyling } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TPage } from "@dragonfruit/types";
+import { DropIndicator, EModalPosition, EModalWidth, ModalCore, ToggleSwitch } from "@dragonfruit/ui";
+import { cn, copyUrlToClipboard, getPageName } from "@dragonfruit/utils";
 import { Copy, Eye, EyeOff, FileText, Link, Monitor, Moon, Sun, X } from "@/components/icons/lucide-shim";
 import {
   buildPublicPagePath,
@@ -33,7 +33,7 @@ import {
   type TWikiThemeKey,
 } from "@/helpers/wiki-appearance";
 import { ProjectPageService } from "@/services/page/project-page.service";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 const pageService = new ProjectPageService();
 

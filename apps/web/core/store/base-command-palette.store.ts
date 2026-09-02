@@ -7,9 +7,9 @@
 import { observable, action, makeObservable } from "mobx";
 import { computedFn } from "mobx-utils";
 // plane imports
-import type { TCreateModalStoreTypes, TCreatePageModal } from "@plane/constants";
-import { DEFAULT_CREATE_PAGE_MODAL_DATA, EPageAccess } from "@plane/constants";
-import { EIssuesStoreType } from "@plane/types";
+import type { TCreateModalStoreTypes, TCreatePageModal } from "@dragonfruit/constants";
+import { DEFAULT_CREATE_PAGE_MODAL_DATA, EPageAccess } from "@dragonfruit/constants";
+import { EIssuesStoreType } from "@dragonfruit/types";
 // lib
 import { store } from "@/lib/store-context";
 

@@ -7,9 +7,9 @@
 import type { ReactNode } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { Row } from "@plane/ui";
+import { Row } from "@dragonfruit/ui";
 // components
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 import { ExtendedAppHeader } from "@/plane-web/components/common/extended-app-header";
 
 export interface AppHeaderProps {

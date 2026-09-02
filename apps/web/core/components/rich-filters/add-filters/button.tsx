@@ -8,12 +8,12 @@ import React from "react";
 import { observer } from "mobx-react";
 import { ListFilter } from "@/components/icons/lucide-shim";
 // plane imports
-import type { TButtonSize, TButtonVariant } from "@plane/propel/button";
-import { getButtonStyling } from "@plane/propel/button";
-import type { IFilterInstance } from "@plane/shared-state";
-import type { TExternalFilter, TFilterProperty, TSupportedOperators } from "@plane/types";
-import { LOGICAL_OPERATOR } from "@plane/types";
-import { cn } from "@plane/utils";
+import type { TButtonSize, TButtonVariant } from "@dragonfruit/propel/button";
+import { getButtonStyling } from "@dragonfruit/propel/button";
+import type { IFilterInstance } from "@dragonfruit/shared-state";
+import type { TExternalFilter, TFilterProperty, TSupportedOperators } from "@dragonfruit/types";
+import { LOGICAL_OPERATOR } from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 // local imports
 import { AddFilterDropdown } from "./dropdown";
 

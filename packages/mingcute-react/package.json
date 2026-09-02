@@ -23,7 +23,7 @@
     "react": "catalog:"
   },
   "devDependencies": {
-    "@plane/typescript-config": "workspace:*",
+    "@dragonfruit/typescript-config": "workspace:*",
     "@types/react": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:"

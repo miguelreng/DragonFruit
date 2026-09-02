@@ -12,11 +12,11 @@ import { useParams } from "next/navigation";
 import { Collapse, Expand } from "@/components/icons/lucide-shim";
 import { Circle } from "@/components/icons/lucide-shim";
 import { PlusIcon, StateGroupIcon } from "@/components/icons/propel-shim";
-import { EIconSize } from "@plane/constants";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TIssue, ISearchIssueResponse, TIssueKanbanFilters, TIssueGroupByOptions } from "@plane/types";
+import { EIconSize } from "@dragonfruit/constants";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TIssue, ISearchIssueResponse, TIssueKanbanFilters, TIssueGroupByOptions } from "@dragonfruit/types";
 // ui
-import { CustomMenu } from "@plane/ui";
+import { CustomMenu } from "@dragonfruit/ui";
 // components
 import { ExistingIssuesListModal } from "@/components/core/modals/existing-issues-list-modal";
 import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";

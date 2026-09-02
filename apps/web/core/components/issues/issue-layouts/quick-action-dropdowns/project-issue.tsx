@@ -9,11 +9,11 @@ import { omit } from "lodash-es";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
-import { ARCHIVABLE_STATE_GROUPS, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import type { TIssue } from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
-import { ContextMenu, CustomMenu } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { ARCHIVABLE_STATE_GROUPS, EUserPermissions, EUserPermissionsLevel } from "@dragonfruit/constants";
+import type { TIssue } from "@dragonfruit/types";
+import { EIssuesStoreType } from "@dragonfruit/types";
+import { ContextMenu, CustomMenu } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";

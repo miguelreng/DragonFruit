@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Sparkles } from "@plane/icons";
+import { Sparkles } from "@dragonfruit/icons";
 // components
 import { WikipediaLogo } from "@/components/logos";
 // helpers

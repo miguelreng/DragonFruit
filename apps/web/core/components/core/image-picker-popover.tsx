@@ -13,13 +13,13 @@ import { Controller } from "react-hook-form";
 import useSWR from "swr";
 import { Popover } from "@headlessui/react";
 // plane imports
-import { ACCEPTED_COVER_IMAGE_MIME_TYPES_FOR_REACT_DROPZONE, MAX_FILE_SIZE } from "@plane/constants";
-import { useOutsideClickDetector } from "@plane/hooks";
-import { Tabs } from "@plane/propel/tabs";
-import { Button, getButtonStyling } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { EFileAssetType } from "@plane/types";
-import { Input, Loader } from "@plane/ui";
+import { ACCEPTED_COVER_IMAGE_MIME_TYPES_FOR_REACT_DROPZONE, MAX_FILE_SIZE } from "@dragonfruit/constants";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
+import { Tabs } from "@dragonfruit/propel/tabs";
+import { Button, getButtonStyling } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { EFileAssetType } from "@dragonfruit/types";
+import { Input, Loader } from "@dragonfruit/ui";
 // helpers
 import { STATIC_COVER_IMAGES, getCoverImageDisplayURL } from "@/helpers/cover-image.helper";
 // hooks

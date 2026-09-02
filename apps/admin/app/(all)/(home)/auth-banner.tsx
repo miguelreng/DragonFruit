@@ -6,9 +6,9 @@
 
 import { InfoCircle as Info } from "@solar-icons/react/ssr";
 // plane constants
-import type { TAdminAuthErrorInfo } from "@plane/constants";
+import type { TAdminAuthErrorInfo } from "@dragonfruit/constants";
 // icons
-import { CloseIcon } from "@plane/propel/icons";
+import { CloseIcon } from "@dragonfruit/propel/icons";
 
 type TAuthBanner = {
   bannerData: TAdminAuthErrorInfo | undefined;

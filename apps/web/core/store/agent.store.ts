@@ -8,7 +8,7 @@ import { set } from "lodash-es";
 import { action, makeObservable, observable, runInAction } from "mobx";
 import { computedFn } from "mobx-utils";
 // plane imports
-import type { IUserLite } from "@plane/types";
+import type { IUserLite } from "@dragonfruit/types";
 // services
 import { AgentService, type TAgent } from "@/services/agent.service";
 

@@ -6,7 +6,7 @@
 
 import { useContext } from "react";
 // types
-import type { TTimelineType } from "@plane/types";
+import type { TTimelineType } from "@dragonfruit/types";
 // lib
 import { StoreContext } from "@/lib/store-context";
 // DragonFruit-web

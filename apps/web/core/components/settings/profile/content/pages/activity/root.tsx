@@ -8,8 +8,8 @@ import { useState } from "react";
 import { ChevronDown } from "@/components/icons/lucide-shim";
 import { observer } from "mobx-react";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
 // components
 import { DetailedEmptyState } from "@/components/empty-state/detailed-empty-state-root";
 // local imports

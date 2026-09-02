@@ -9,12 +9,12 @@ import { xor } from "lodash-es";
 import { observer } from "mobx-react";
 import { Combobox } from "@headlessui/react";
 // plane ui
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { Logo } from "@plane/propel/emoji-icon-picker";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { Logo } from "@dragonfruit/propel/emoji-icon-picker";
 import { SearchIcon, CloseIcon } from "@/components/icons/propel-shim";
-import { Checkbox, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { Checkbox, EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 // components
 import { SimpleEmptyState } from "@/components/empty-state/simple-empty-state-root";
 // hooks

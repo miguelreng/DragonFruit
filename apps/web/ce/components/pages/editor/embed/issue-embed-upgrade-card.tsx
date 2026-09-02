@@ -5,8 +5,8 @@
  */
 
 // plane imports
-import { getButtonStyling } from "@plane/propel/button";
-import { cn } from "@plane/utils";
+import { getButtonStyling } from "@dragonfruit/propel/button";
+import { cn } from "@dragonfruit/utils";
 // components
 import { ProIcon } from "@/components/common/pro-icon";
 

@@ -9,12 +9,12 @@ import { observer } from "mobx-react";
 import { LockKeyholeOpen } from "@/components/icons/lucide-shim";
 // plane imports
 import { LockIcon } from "@/components/icons/propel-shim";
-import { Tooltip } from "@plane/propel/tooltip";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 // hooks
 import { usePageOperations } from "@/hooks/use-page-operations";
 // store
 import type { TPageInstance } from "@/store/pages/base-page";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 // Define our lock display states, renaming "icon-only" to "neutral"
 type LockDisplayState = "neutral" | "locked" | "unlocked";

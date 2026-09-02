@@ -8,10 +8,10 @@ import { useCallback } from "react";
 import { observer } from "mobx-react";
 import { SlidersHorizontal } from "@/components/icons/lucide-shim";
 // plane imports
-import { EIssueFilterType, ISSUE_STORE_TO_FILTERS_MAP } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import type { IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@plane/types";
-import { EIssueLayoutTypes, EIssuesStoreType } from "@plane/types";
+import { EIssueFilterType, ISSUE_STORE_TO_FILTERS_MAP } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@dragonfruit/types";
+import { EIssueLayoutTypes, EIssuesStoreType } from "@dragonfruit/types";
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
 // plane web imports

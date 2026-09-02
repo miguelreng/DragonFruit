@@ -7,9 +7,9 @@
 import { observer } from "mobx-react";
 import { PanelRight } from "@/components/icons/lucide-shim";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { Tooltip } from "@plane/propel/tooltip";
-import { cn } from "@plane/utils";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { cn } from "@dragonfruit/utils";
 // components
 import { PageToolbar } from "@/components/pages/editor/toolbar";
 // hooks
@@ -18,7 +18,7 @@ import { usePageFilters } from "@/hooks/use-page-filters";
 import { PageCollaboratorsList } from "@/plane-web/components/pages/header/collaborators-list";
 // store
 import type { TPageInstance } from "@/store/pages/base-page";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 type Props = {
   handleOpenNavigationPane: () => void;

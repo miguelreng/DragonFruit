@@ -7,9 +7,9 @@
 import { useParams } from "next/navigation";
 import { useState } from "react";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { EPillSize, EPillVariant, Pill } from "@plane/propel/pill";
-import { ToggleSwitch } from "@plane/ui";
+import { useTranslation } from "@dragonfruit/i18n";
+import { EPillSize, EPillVariant, Pill } from "@dragonfruit/propel/pill";
+import { ToggleSwitch } from "@dragonfruit/ui";
 // services
 import type { TAgent } from "@/services/agent.service";
 // constants

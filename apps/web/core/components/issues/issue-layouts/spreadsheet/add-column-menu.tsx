@@ -8,13 +8,13 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // constants
-import { EIssueFilterType, SPREADSHEET_PROPERTY_DETAILS } from "@plane/constants";
+import { EIssueFilterType, SPREADSHEET_PROPERTY_DETAILS } from "@dragonfruit/constants";
 // i18n
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 // types
-import type { IIssueDisplayProperties } from "@plane/types";
+import type { IIssueDisplayProperties } from "@dragonfruit/types";
 // ui
-import { CustomMenu } from "@plane/ui";
+import { CustomMenu } from "@dragonfruit/ui";
 // components
 import { CreateUpdateCustomFieldModal } from "@/components/custom-fields";
 // icons

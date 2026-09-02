@@ -9,7 +9,7 @@ import { Fragment, useState } from "react";
 import { usePopper } from "react-popper";
 import { Popover } from "@headlessui/react";
 // plane imports
-import { Button } from "@plane/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 
 type Props = {
   label: string;

@@ -18,9 +18,9 @@ import { attachInstruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/tree
 import { observer } from "mobx-react";
 import { createRoot } from "react-dom/client";
 // plane imports
-import { useOutsideClickDetector } from "@plane/hooks";
-import type { IFavorite, InstructionType } from "@plane/types";
-import { DropIndicator } from "@plane/ui";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
+import type { IFavorite, InstructionType } from "@dragonfruit/types";
+import { DropIndicator } from "@dragonfruit/ui";
 // hooks
 import { useFavoriteItemDetails } from "@/hooks/use-favorite-item-details";
 // local imports

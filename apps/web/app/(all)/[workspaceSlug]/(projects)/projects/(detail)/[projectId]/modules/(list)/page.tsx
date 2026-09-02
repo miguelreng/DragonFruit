@@ -7,11 +7,11 @@
 import { useCallback } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { EUserPermissionsLevel } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import type { TModuleFilters } from "@plane/types";
-import { EUserProjectRoles } from "@plane/types";
-import { calculateTotalFilters } from "@plane/utils";
+import { EUserPermissionsLevel } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { TModuleFilters } from "@dragonfruit/types";
+import { EUserProjectRoles } from "@dragonfruit/types";
+import { calculateTotalFilters } from "@dragonfruit/utils";
 // components
 import { PageHead } from "@/components/core/page-title";
 import { DetailedEmptyState } from "@/components/empty-state/detailed-empty-state-root";

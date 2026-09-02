@@ -7,10 +7,10 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { Button } from "@plane/propel/button";
-import { setToast, TOAST_TYPE } from "@plane/propel/toast";
-import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-import { cn, generateWorkItemLink } from "@plane/utils";
+import { Button } from "@dragonfruit/propel/button";
+import { setToast, TOAST_TYPE } from "@dragonfruit/propel/toast";
+import { EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
+import { cn, generateWorkItemLink } from "@dragonfruit/utils";
 import { ChevronDown, FileText, ListChecks, X } from "@/components/icons/lucide-shim";
 import { ProjectDropdown } from "@/components/dropdowns/project/dropdown";
 import { useProject } from "@/hooks/store/use-project";

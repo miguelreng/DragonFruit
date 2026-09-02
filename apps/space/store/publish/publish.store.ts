@@ -12,7 +12,7 @@ import type {
   TPublishEntityType,
   TProjectPublishSettings,
   TProjectPublishViewProps,
-} from "@plane/types";
+} from "@dragonfruit/types";
 // store
 import type { RootStore } from "../root.store";
 

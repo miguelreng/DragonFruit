@@ -7,13 +7,13 @@
 import { useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 // plane editor
-import { searchWikipedia } from "@plane/editor";
-import type { TMentionSection, TMentionSuggestion } from "@plane/editor";
+import { searchWikipedia } from "@dragonfruit/editor";
+import type { TMentionSection, TMentionSuggestion } from "@dragonfruit/editor";
 // plane imports
 import { WorkItemsIcon } from "@/components/icons/propel-shim";
 import { Calendar, FileText, Whiteboard } from "@/components/icons/lucide-shim";
 // plane types
-import type { TSearchEntities, TSearchResponse } from "@plane/types";
+import type { TSearchEntities, TSearchResponse } from "@dragonfruit/types";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useProject } from "@/hooks/store/use-project";

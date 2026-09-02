@@ -8,7 +8,7 @@ import { get, set, concat, uniq, update } from "lodash-es";
 import { action, observable, makeObservable, runInAction } from "mobx";
 import { computedFn } from "mobx-utils";
 // plane imports
-import { ALL_ISSUES } from "@plane/constants";
+import { ALL_ISSUES } from "@dragonfruit/constants";
 import type {
   TIssue,
   TLoader,
@@ -16,9 +16,9 @@ import type {
   TIssuesResponse,
   ViewFlags,
   TBulkOperationsPayload,
-} from "@plane/types";
+} from "@dragonfruit/types";
 // helpers
-import { getDistributionPathsPostUpdate } from "@plane/utils";
+import { getDistributionPathsPostUpdate } from "@dragonfruit/utils";
 //local
 import { storage } from "@/lib/local-storage";
 import type { IBaseIssuesStore } from "../helpers/base-issues.store";

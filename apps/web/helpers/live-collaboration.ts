@@ -1,4 +1,4 @@
-import { LIVE_BASE_PATH, LIVE_BASE_URL } from "@plane/constants";
+import { LIVE_BASE_PATH, LIVE_BASE_URL } from "@dragonfruit/constants";
 
 const DEFAULT_LIVE_BASE_PATH = "/live";
 

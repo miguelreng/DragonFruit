@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { Avatar, type TAvatarSize } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { Avatar, type TAvatarSize } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 import { Sparkles } from "@/components/icons/lucide-shim";
 import { ATLAS_IDENTITY } from "@/constants/atlas";
 

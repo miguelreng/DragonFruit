@@ -8,7 +8,7 @@ import React, { useState } from "react";
 import { observer } from "mobx-react";
 import { AlertTriangle } from "@/components/icons/lucide-shim";
 import { Dialog, Transition } from "@headlessui/react";
-import { Button } from "@plane/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 import { useUser } from "@/hooks/store/user";
 import type { Props } from "./confirm-workspace-member-remove";
 

@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import useSWR from "swr";
-import { Loader } from "@plane/ui";
+import { Loader } from "@dragonfruit/ui";
 // components
 import { PageWrapper } from "@/components/common/page-wrapper";
 // hooks

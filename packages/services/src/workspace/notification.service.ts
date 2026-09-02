@@ -4,13 +4,13 @@
  * See the LICENSE file for details.
  */
 
-import { API_BASE_URL } from "@plane/constants";
+import { API_BASE_URL } from "@dragonfruit/constants";
 import type {
   TUnreadNotificationsCount,
   TNotificationPaginatedInfo,
   TNotification,
   TNotificationPaginatedInfoQueryParams,
-} from "@plane/types";
+} from "@dragonfruit/types";
 // services
 import { APIService } from "../api.service";
 

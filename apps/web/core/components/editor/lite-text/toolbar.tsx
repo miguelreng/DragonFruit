@@ -5,21 +5,21 @@
  */
 
 import React, { useEffect, useState, useCallback } from "react";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 import type { LucideIcon } from "@/components/icons/lucide-shim";
 
-import { EIssueCommentAccessSpecifier } from "@plane/constants";
+import { EIssueCommentAccessSpecifier } from "@dragonfruit/constants";
 // editor
-import type { EditorRefApi } from "@plane/editor";
+import type { EditorRefApi } from "@dragonfruit/editor";
 // i18n
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 // ui
-import { Button } from "@plane/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 import { GlobeIcon, LockIcon } from "@/components/icons/propel-shim";
 import type { ISvgIcons } from "@/components/icons/propel-shim";
-import { Tooltip } from "@plane/propel/tooltip";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 // constants
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 import type { ToolbarMenuItem } from "@/constants/editor";
 import { TOOLBAR_ITEMS } from "@/constants/editor";
 // helpers

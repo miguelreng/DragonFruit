@@ -6,10 +6,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 // constants
-import { EPageAccess } from "@plane/constants";
-import type { TPage, TPageTemplate } from "@plane/types";
+import { EPageAccess } from "@dragonfruit/constants";
+import type { TPage, TPageTemplate } from "@dragonfruit/types";
 // ui
-import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
+import { EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
 // hooks
 import { useAppRouter } from "@/hooks/use-app-router";
 // plane web hooks

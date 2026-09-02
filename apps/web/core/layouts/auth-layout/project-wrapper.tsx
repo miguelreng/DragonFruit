@@ -9,8 +9,8 @@ import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import useSWR from "swr";
 // plane imports
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { GANTT_TIMELINE_TYPE } from "@plane/types";
+import { EUserPermissions, EUserPermissionsLevel } from "@dragonfruit/constants";
+import { GANTT_TIMELINE_TYPE } from "@dragonfruit/types";
 // components
 import { ProjectAccessRestriction } from "@/components/auth-screens/project/project-access-restriction";
 import {

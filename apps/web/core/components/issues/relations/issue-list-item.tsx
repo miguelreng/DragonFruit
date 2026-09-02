@@ -6,15 +6,15 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { LinkIcon, EditIcon, TrashIcon, CloseIcon } from "@/components/icons/propel-shim";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
 // plane imports
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TIssue, TIssueServiceType } from "@plane/types";
-import { EIssueServiceType } from "@plane/types";
-import { ControlLink, CustomMenu } from "@plane/ui";
-import { generateWorkItemLink } from "@plane/utils";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TIssue, TIssueServiceType } from "@dragonfruit/types";
+import { EIssueServiceType } from "@dragonfruit/types";
+import { ControlLink, CustomMenu } from "@dragonfruit/ui";
+import { generateWorkItemLink } from "@dragonfruit/utils";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useProject } from "@/hooks/store/use-project";

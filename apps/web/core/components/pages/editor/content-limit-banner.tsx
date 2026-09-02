@@ -5,7 +5,7 @@
  */
 
 import { TriangleAlert } from "@/components/icons/lucide-shim";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 
 type Props = {
   className?: string;

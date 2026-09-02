@@ -8,13 +8,13 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import { useDropzone } from "react-dropzone";
 // plane imports
-import { ACCEPTED_AVATAR_IMAGE_MIME_TYPES_FOR_REACT_DROPZONE, MAX_FILE_SIZE } from "@plane/constants";
-import { Button } from "@plane/propel/button";
+import { ACCEPTED_AVATAR_IMAGE_MIME_TYPES_FOR_REACT_DROPZONE, MAX_FILE_SIZE } from "@dragonfruit/constants";
+import { Button } from "@dragonfruit/propel/button";
 import { UserCirclePropertyIcon } from "@/components/icons/propel-shim";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { EFileAssetType } from "@plane/types";
-import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-import { getAssetIdFromUrl, getFileURL, checkURLValidity } from "@plane/utils";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { EFileAssetType } from "@dragonfruit/types";
+import { EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
+import { getAssetIdFromUrl, getFileURL, checkURLValidity } from "@dragonfruit/utils";
 // services
 import { FileService } from "@/services/file.service";
 const fileService = new FileService();

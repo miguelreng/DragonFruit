@@ -10,10 +10,10 @@ import { useParams } from "react-router";
 import useSWR from "swr";
 import { XIcon } from "@/components/icons/lucide-shim";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import type { TPageVersion } from "@plane/types";
-import { Avatar, EModalPosition, EModalWidth, Loader, ModalCore } from "@plane/ui";
-import { cn, getFileURL, renderFormattedDate, renderFormattedTime } from "@plane/utils";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { TPageVersion } from "@dragonfruit/types";
+import { Avatar, EModalPosition, EModalWidth, Loader, ModalCore } from "@dragonfruit/ui";
+import { cn, getFileURL, renderFormattedDate, renderFormattedTime } from "@dragonfruit/utils";
 // hooks
 import { normalizeDocFontStyle } from "@/helpers/doc-font";
 import { useMember } from "@/hooks/store/use-member";
@@ -25,7 +25,7 @@ import type { TPageInstance } from "@/store/pages/base-page";
 // local imports
 import { PagesVersionEditor } from "./editor";
 import { PageVersionsMainContent } from "./main-content";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 const projectPageVersionService = new ProjectPageVersionService();
 

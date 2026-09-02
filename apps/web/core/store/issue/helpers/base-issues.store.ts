@@ -8,7 +8,7 @@ import { isEqual, concat, get, indexOf, isEmpty, orderBy, pull, set, uniq, updat
 import { action, computed, makeObservable, observable, runInAction } from "mobx";
 import { computedFn } from "mobx-utils";
 // plane constants
-import { ALL_ISSUES, ISSUE_PRIORITIES } from "@plane/constants";
+import { ALL_ISSUES, ISSUE_PRIORITIES } from "@dragonfruit/constants";
 // types
 import type {
   TIssue,
@@ -25,10 +25,10 @@ import type {
   TPaginationData,
   TBulkOperationsPayload,
   IBlockUpdateDependencyData,
-} from "@plane/types";
-import { EIssueServiceType, EIssueLayoutTypes } from "@plane/types";
+} from "@dragonfruit/types";
+import { EIssueServiceType, EIssueLayoutTypes } from "@dragonfruit/types";
 // helpers
-import { convertToISODateString } from "@plane/utils";
+import { convertToISODateString } from "@dragonfruit/utils";
 // plane web imports
 import { workItemSortWithOrderByExtended } from "@/plane-web/store/issue/helpers/base-issue.store";
 // services

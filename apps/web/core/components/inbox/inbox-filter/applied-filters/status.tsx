@@ -5,12 +5,12 @@
  */
 
 import { observer } from "mobx-react";
-import { INBOX_STATUS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { INBOX_STATUS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 import { CloseIcon } from "@/components/icons/propel-shim";
-import type { TInboxIssueStatus } from "@plane/types";
+import type { TInboxIssueStatus } from "@dragonfruit/types";
 // constants
-import { Tag } from "@plane/ui";
+import { Tag } from "@dragonfruit/ui";
 // hooks
 import { useProjectInbox } from "@/hooks/store/use-project-inbox";
 import { InboxStatusIcon } from "../../inbox-status-icon";

@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import type { EFileAssetType } from "@plane/types";
-import { getFileURL } from "@plane/utils";
+import type { EFileAssetType } from "@dragonfruit/types";
+import { getFileURL } from "@dragonfruit/utils";
 
 import CoverImage1 from "@/app/assets/cover-images/image_1.jpg?url";
 import CoverImage10 from "@/app/assets/cover-images/image_10.jpg?url";

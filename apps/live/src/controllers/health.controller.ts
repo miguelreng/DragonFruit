@@ -5,7 +5,7 @@
  */
 
 import type { Request, Response } from "express";
-import { Controller, Get } from "@plane/decorators";
+import { Controller, Get } from "@dragonfruit/decorators";
 import { env } from "@/env";
 import { redisManager } from "@/redis";
 

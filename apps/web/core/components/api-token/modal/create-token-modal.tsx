@@ -7,11 +7,11 @@
 import { useState } from "react";
 import { mutate } from "swr";
 // plane imports
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { APITokenService } from "@plane/services";
-import type { IApiToken } from "@plane/types";
-import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-import { renderFormattedDate, csvDownload } from "@plane/utils";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { APITokenService } from "@dragonfruit/services";
+import type { IApiToken } from "@dragonfruit/types";
+import { EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
+import { renderFormattedDate, csvDownload } from "@dragonfruit/utils";
 // constants
 import { API_TOKENS_LIST } from "@/constants/fetch-keys";
 // local imports

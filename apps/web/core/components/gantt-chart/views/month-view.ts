@@ -6,7 +6,7 @@
 
 import { cloneDeep, uniqBy } from "lodash-es";
 // plane imports
-import type { ChartDataType } from "@plane/types";
+import type { ChartDataType } from "@dragonfruit/types";
 // local imports
 import { months } from "../data";
 import { getNumberOfDaysBetweenTwoDates, getNumberOfDaysInMonth } from "./helpers";

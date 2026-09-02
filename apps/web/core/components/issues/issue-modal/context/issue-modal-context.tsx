@@ -8,8 +8,8 @@ import { createContext } from "react";
 // ce imports
 import type { UseFormReset, UseFormWatch } from "react-hook-form";
 // plane imports
-import type { EditorRefApi } from "@plane/editor";
-import type { ISearchIssueResponse, TIssue } from "@plane/types";
+import type { EditorRefApi } from "@dragonfruit/editor";
+import type { ISearchIssueResponse, TIssue } from "@dragonfruit/types";
 // plane web imports
 import type { TIssuePropertyValues, TIssuePropertyValueErrors } from "@/plane-web/types/issue-types";
 import type { TIssueFields } from "@/plane-web/components/issues/issue-modal";

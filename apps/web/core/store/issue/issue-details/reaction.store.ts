@@ -7,8 +7,8 @@
 import { pull, find, concat, set, update } from "lodash-es";
 import { action, makeObservable, observable, runInAction } from "mobx";
 // DragonFruit Imports
-import type { TIssueReaction, TIssueReactionMap, TIssueReactionIdMap, TIssueServiceType } from "@plane/types";
-import { groupReactions } from "@plane/utils";
+import type { TIssueReaction, TIssueReactionMap, TIssueReactionIdMap, TIssueServiceType } from "@dragonfruit/types";
+import { groupReactions } from "@dragonfruit/utils";
 // services
 import { IssueReactionService } from "@/services/issue";
 // types

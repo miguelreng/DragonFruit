@@ -10,8 +10,8 @@ import { Controller } from "react-hook-form";
 // icons
 import { Eye, EyeClosed as EyeOff } from "@solar-icons/react/ssr";
 // plane internal packages
-import { Input } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { Input } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 
 type Props = {
   control: Control<any>;

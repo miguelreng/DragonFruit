@@ -12,7 +12,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons/propel-shi
 //hooks
 // icons
 // constants
-import { getDate } from "@plane/utils";
+import { getDate } from "@dragonfruit/utils";
 import { MONTHS_LIST } from "@/constants/calendar";
 import { useCalendarView } from "@/hooks/store/use-calendar-view";
 import type { ICycleIssuesFilter } from "@/store/issue/cycle";

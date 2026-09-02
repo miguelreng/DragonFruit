@@ -5,12 +5,12 @@
  */
 
 import React, { useEffect, useState, useCallback } from "react";
-import type { EditorRefApi } from "@plane/editor";
+import type { EditorRefApi } from "@dragonfruit/editor";
 // plane imports
 import { CheckIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
-import { Tooltip } from "@plane/propel/tooltip";
-import { CustomMenu } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { CustomMenu } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 // constants
 import type { ToolbarMenuItem } from "@/constants/editor";
 import { TOOLBAR_ITEMS, TYPOGRAPHY_ITEMS } from "@/constants/editor";

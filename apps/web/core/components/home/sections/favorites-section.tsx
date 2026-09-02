@@ -9,7 +9,7 @@ import Link from "next/link";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
-import type { IFavorite } from "@plane/types";
+import type { IFavorite } from "@dragonfruit/types";
 import { ChevronRight } from "@/components/icons/lucide-shim";
 import { useFavorite } from "@/hooks/store/use-favorite";
 import { useFavoriteItemDetails } from "@/hooks/use-favorite-item-details";

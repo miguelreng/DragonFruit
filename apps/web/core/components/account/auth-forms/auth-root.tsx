@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { useSearchParams } from "next/navigation";
 // plane imports
-import { OAuthOptions } from "@plane/ui";
+import { OAuthOptions } from "@dragonfruit/ui";
 // helpers
 import type { TAuthErrorInfo } from "@/helpers/authentication.helper";
 import {

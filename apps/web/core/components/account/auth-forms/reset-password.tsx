@@ -10,12 +10,12 @@ import { useSearchParams } from "next/navigation";
 // icons
 import { Eye, EyeOff } from "@/components/icons/lucide-shim";
 // ui
-import { API_BASE_URL, E_PASSWORD_STRENGTH } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { Input, PasswordStrengthIndicator } from "@plane/ui";
+import { API_BASE_URL, E_PASSWORD_STRENGTH } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { Input, PasswordStrengthIndicator } from "@dragonfruit/ui";
 // components
-import { getPasswordStrength } from "@plane/utils";
+import { getPasswordStrength } from "@dragonfruit/utils";
 // helpers
 import type { EAuthenticationErrorCodes, TAuthErrorInfo } from "@/helpers/authentication.helper";
 import { EErrorAlertType, authErrorHandler } from "@/helpers/authentication.helper";

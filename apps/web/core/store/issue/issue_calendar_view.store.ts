@@ -8,9 +8,9 @@ import { observable, action, makeObservable, runInAction, computed, reaction } f
 
 // helpers
 import { computedFn } from "mobx-utils";
-import type { ICalendarPayload, ICalendarWeek } from "@plane/types";
-import { EStartOfTheWeek } from "@plane/types";
-import { generateCalendarData, getWeekNumberOfDate } from "@plane/utils";
+import type { ICalendarPayload, ICalendarWeek } from "@dragonfruit/types";
+import { EStartOfTheWeek } from "@dragonfruit/types";
+import { generateCalendarData, getWeekNumberOfDate } from "@dragonfruit/utils";
 // types
 import type { IIssueRootStore } from "./root.store";
 

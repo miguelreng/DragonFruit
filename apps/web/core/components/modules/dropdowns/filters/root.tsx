@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import type { TModuleStatus } from "@/components/icons/propel-shim";
 // plane imports
 import { CloseIcon, SearchIcon } from "@/components/icons/propel-shim";
-import type { TModuleDisplayFilters, TModuleFilters } from "@plane/types";
+import type { TModuleDisplayFilters, TModuleFilters } from "@dragonfruit/types";
 // components
 import { FilterOption } from "@/components/issues/issue-layouts/filters";
 import { FilterLead, FilterMembers, FilterStartDate, FilterStatus, FilterTargetDate } from "@/components/modules";

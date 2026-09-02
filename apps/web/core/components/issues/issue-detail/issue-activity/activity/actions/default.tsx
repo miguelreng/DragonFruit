@@ -7,9 +7,9 @@
 import { observer } from "mobx-react";
 // plane imports
 import { ListChecks as WorkItemsIcon } from "@/components/icons/lucide-shim";
-import { EInboxIssueSource } from "@plane/types";
+import { EInboxIssueSource } from "@dragonfruit/types";
 // hooks
-import { capitalizeFirstLetter } from "@plane/utils";
+import { capitalizeFirstLetter } from "@dragonfruit/utils";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 // local imports
 import { IssueActivityBlockComponent } from "./";

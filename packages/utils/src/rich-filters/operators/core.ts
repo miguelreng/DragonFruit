@@ -6,12 +6,12 @@
 
 import { get } from "lodash-es";
 // plane imports
-import { DATE_OPERATOR_LABELS_MAP, EMPTY_OPERATOR_LABEL, OPERATOR_LABELS_MAP } from "@plane/constants";
+import { DATE_OPERATOR_LABELS_MAP, EMPTY_OPERATOR_LABEL, OPERATOR_LABELS_MAP } from "@dragonfruit/constants";
 import type {
   TAllAvailableOperatorsForDisplay,
   TFilterValue,
   TAllAvailableDateFilterOperatorsForDisplay,
-} from "@plane/types";
+} from "@dragonfruit/types";
 
 // -------- OPERATOR LABEL UTILITIES --------
 

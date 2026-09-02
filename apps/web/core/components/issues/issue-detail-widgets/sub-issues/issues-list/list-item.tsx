@@ -6,13 +6,13 @@
 
 import { observer } from "mobx-react";
 import { ChevronRight, Edit, Link, Loader2 as Loader, MoreHorizontal, Trash, X } from "@/components/icons/lucide-shim";
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 // plane imports
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TIssue, TIssueServiceType, TSubIssueOperations } from "@plane/types";
-import { EIssueServiceType, EIssuesStoreType } from "@plane/types";
-import { ControlLink, CustomMenu } from "@plane/ui";
-import { cn, generateWorkItemLink } from "@plane/utils";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TIssue, TIssueServiceType, TSubIssueOperations } from "@dragonfruit/types";
+import { EIssueServiceType, EIssuesStoreType } from "@dragonfruit/types";
+import { ControlLink, CustomMenu } from "@dragonfruit/ui";
+import { cn, generateWorkItemLink } from "@dragonfruit/utils";
 // helpers
 import { useSubIssueOperations } from "@/components/issues/issue-detail-widgets/sub-issues/helper";
 import { WithDisplayPropertiesHOC } from "@/components/issues/issue-layouts/properties/with-display-properties-HOC";

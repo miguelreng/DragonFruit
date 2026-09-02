@@ -5,8 +5,8 @@
  */
 
 import { Download } from "@/components/icons/lucide-shim";
-import type { IExportData } from "@plane/types";
-import { getDate, getFileURL, renderFormattedDate } from "@plane/utils";
+import type { IExportData } from "@dragonfruit/types";
+import { getDate, getFileURL, renderFormattedDate } from "@dragonfruit/utils";
 
 type RowData = IExportData;
 const checkExpiry = (inputDateString: string) => {

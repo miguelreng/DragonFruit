@@ -8,9 +8,9 @@ import { useEffect, useMemo } from "react";
 import { observer } from "mobx-react";
 import { v4 as uuidv4 } from "uuid";
 // plane imports
-import type { TSaveViewOptions, TUpdateViewOptions } from "@plane/constants";
-import type { IWorkItemFilterInstance } from "@plane/shared-state";
-import type { IIssueFilters, TWorkItemFilterExpression } from "@plane/types";
+import type { TSaveViewOptions, TUpdateViewOptions } from "@dragonfruit/constants";
+import type { IWorkItemFilterInstance } from "@dragonfruit/shared-state";
+import type { IIssueFilters, TWorkItemFilterExpression } from "@dragonfruit/types";
 // store hooks
 import { useWorkItemFilters } from "@/hooks/store/work-item-filters/use-work-item-filters";
 // plane web imports

@@ -8,8 +8,8 @@ import { Collapse } from "@/components/common/collapse";
 import React, { useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { NETWORK_CHOICES } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { NETWORK_CHOICES } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 // components
 import { FilterHeader, FilterOption } from "@/components/issues/issue-layouts/filters";
 // local imports

@@ -9,17 +9,17 @@ import { observer } from "mobx-react";
 import { useSearchParams } from "next/navigation";
 import { AlertCircle } from "@/components/icons/lucide-shim";
 import { Disclosure, Transition } from "@headlessui/react";
-import { EEstimateSystem } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { EEstimateSystem } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 import { ChevronUpIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
-import type { TModulePlotType } from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
-import { CustomSelect } from "@plane/ui";
-import { Spinner } from "@plane/propel/spinners";
+import type { TModulePlotType } from "@dragonfruit/types";
+import { EIssuesStoreType } from "@dragonfruit/types";
+import { CustomSelect } from "@dragonfruit/ui";
+import { Spinner } from "@dragonfruit/propel/spinners";
 // components
 // constants
 // helpers
-import { getDate } from "@plane/utils";
+import { getDate } from "@dragonfruit/utils";
 import ProgressChart from "@/components/core/sidebar/progress-chart";
 import { ModuleProgressStats } from "@/components/modules";
 // hooks

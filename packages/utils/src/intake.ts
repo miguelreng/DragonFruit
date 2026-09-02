@@ -6,7 +6,7 @@
 
 import { subDays } from "date-fns";
 // plane imports
-import { EPastDurationFilters } from "@plane/constants";
+import { EPastDurationFilters } from "@dragonfruit/constants";
 // local imports
 import { renderFormattedPayloadDate } from "./datetime";
 

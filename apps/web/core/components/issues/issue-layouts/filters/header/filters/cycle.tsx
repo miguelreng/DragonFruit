@@ -10,9 +10,9 @@ import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { CycleGroupIcon } from "@/components/icons/propel-shim";
-import type { TCycleGroups } from "@plane/types";
+import type { TCycleGroups } from "@dragonfruit/types";
 // components
-import { Loader } from "@plane/ui";
+import { Loader } from "@dragonfruit/ui";
 import { FilterHeader, FilterOption } from "@/components/issues/issue-layouts/filters";
 import { useCycle } from "@/hooks/store/use-cycle";
 // ui

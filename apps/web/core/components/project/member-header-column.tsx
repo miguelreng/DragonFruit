@@ -15,12 +15,12 @@ import {
   MoveRight,
 } from "@/components/icons/lucide-shim";
 // constants
-import type { IProjectMemberDisplayProperties, TMemberOrderByOptions } from "@plane/constants";
-import { MEMBER_PROPERTY_DETAILS } from "@plane/constants";
+import type { IProjectMemberDisplayProperties, TMemberOrderByOptions } from "@dragonfruit/constants";
+import { MEMBER_PROPERTY_DETAILS } from "@dragonfruit/constants";
 // i18n
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 // types
-import { CustomMenu } from "@plane/ui";
+import { CustomMenu } from "@dragonfruit/ui";
 import type { IMemberFilters } from "@/store/member/utils";
 
 interface Props {

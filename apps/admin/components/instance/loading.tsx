@@ -5,7 +5,7 @@
  */
 
 import { useTheme } from "next-themes";
-import { DragonfruitLogo } from "@plane/propel/icons";
+import { DragonfruitLogo } from "@dragonfruit/propel/icons";
 
 /**
  * Instance-level loading indicator using the Dragonfruit mark.

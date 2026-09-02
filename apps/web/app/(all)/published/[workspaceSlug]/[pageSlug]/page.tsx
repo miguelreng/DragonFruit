@@ -7,10 +7,10 @@
 import { observer } from "mobx-react";
 import { useEffect, useLayoutEffect, useMemo, type ReactNode } from "react";
 import useSWR from "swr";
-import { SitesProjectPublishService } from "@plane/services";
+import { SitesProjectPublishService } from "@dragonfruit/services";
 import { PublicPageService } from "@/services/page/public-page.service";
 import dragonFruitLogo from "@/app/assets/plane-logos/logo-black.svg?url";
-import { renderFormattedDate } from "@plane/utils";
+import { renderFormattedDate } from "@dragonfruit/utils";
 import {
   addPublicDocHeadingIds,
   getPublicDocHeadings,

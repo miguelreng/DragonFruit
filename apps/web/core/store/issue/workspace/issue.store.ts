@@ -13,7 +13,7 @@ import type {
   TIssuesResponse,
   TLoader,
   ViewFlags,
-} from "@plane/types";
+} from "@dragonfruit/types";
 // types
 import type { IBaseIssuesStore } from "../helpers/base-issues.store";
 import { BaseIssuesStore } from "../helpers/base-issues.store";

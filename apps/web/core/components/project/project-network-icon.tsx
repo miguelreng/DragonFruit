@@ -4,10 +4,10 @@
  * See the LICENSE file for details.
  */
 
-import type { TNetworkChoiceIconKey } from "@plane/constants";
+import type { TNetworkChoiceIconKey } from "@dragonfruit/constants";
 // plane imports
 import { GlobeIcon, LockIcon } from "@/components/icons/propel-shim";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 
 type Props = {
   iconKey: TNetworkChoiceIconKey;

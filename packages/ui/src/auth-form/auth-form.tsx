@@ -5,9 +5,9 @@
  */
 
 import React, { useState, useMemo } from "react";
-import { E_PASSWORD_STRENGTH } from "@plane/constants";
-import { Button } from "@plane/propel/button";
-import { Spinner } from "@plane/propel/spinners";
+import { E_PASSWORD_STRENGTH } from "@dragonfruit/constants";
+import { Button } from "@dragonfruit/propel/button";
+import { Spinner } from "@dragonfruit/propel/spinners";
 import { cn } from "../utils";
 import { AuthConfirmPasswordInput } from "./auth-confirm-password-input";
 import { AuthForgotPassword } from "./auth-forgot-password";

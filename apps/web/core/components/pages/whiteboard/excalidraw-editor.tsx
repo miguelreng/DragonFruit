@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import { debounce } from "lodash-es";
 import type { AppState, BinaryFiles, DataURL, ExcalidrawInitialDataState } from "@excalidraw/excalidraw/types";
 import type { OrderedExcalidrawElement } from "@excalidraw/excalidraw/element/types";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
 import { useTopBarTheme } from "@/hooks/use-top-bar-theme";
 import type { TPageInstance } from "@/store/pages/base-page";
 import type { TPageRootHandlers } from "../editor/page-root";

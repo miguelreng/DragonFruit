@@ -5,7 +5,7 @@
  */
 
 import { Logger as HocuspocusLogger } from "@hocuspocus/extension-logger";
-import { logger } from "@plane/logger";
+import { logger } from "@dragonfruit/logger";
 
 export class Logger extends HocuspocusLogger {
   constructor() {

@@ -7,10 +7,10 @@
 import React, { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useSearchParams } from "react-router";
-import { useOutsideClickDetector } from "@plane/hooks";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
 import { SearchIcon, CloseIcon } from "@/components/icons/propel-shim";
-import { IconButton } from "@plane/propel/icon-button";
-import { cn } from "@plane/utils";
+import { IconButton } from "@dragonfruit/propel/icon-button";
+import { cn } from "@dragonfruit/utils";
 
 /**
  * Expanding header search for the My tasks list — mirrors the search affordance

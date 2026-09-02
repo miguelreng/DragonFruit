@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { IUser } from "@plane/types";
+import type { IUser } from "@dragonfruit/types";
 // hooks
 import { useCurrentTime } from "@/hooks/use-current-time";
 // assets

@@ -8,8 +8,8 @@ import React from "react";
 import { observer } from "mobx-react";
 import { CalendarMinimalisticIcon } from "@/components/icons/propel-shim";
 // types
-import type { TIssue } from "@plane/types";
-import { cn, getDate, renderFormattedPayloadDate, shouldHighlightIssueDueDate } from "@plane/utils";
+import type { TIssue } from "@dragonfruit/types";
+import { cn, getDate, renderFormattedPayloadDate, shouldHighlightIssueDueDate } from "@dragonfruit/utils";
 // components
 import { DateDropdown } from "@/components/dropdowns/date";
 // helpers

@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 // plane imports
-import { Button } from "@plane/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 // components
 import { Briefcase, Loader2, Pencil, Plus, Trash2 } from "@/components/icons/lucide-shim";
 // services

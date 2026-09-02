@@ -7,7 +7,7 @@
 import React from "react";
 
 // ui
-import { Button } from "@plane/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 import { EmptyStateIcon, type TEmptyStateIconName } from "@/components/empty-state/empty-state-icon";
 
 type Props = {

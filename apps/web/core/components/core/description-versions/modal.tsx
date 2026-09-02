@@ -7,16 +7,16 @@
 import { useCallback, useRef } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import type { EditorRefApi } from "@plane/editor";
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { IconButton } from "@plane/propel/icon-button";
+import type { EditorRefApi } from "@dragonfruit/editor";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 import { CopyIcon, ChevronLeftIcon, ChevronRightIcon } from "@/components/icons/propel-shim";
-import { setToast, TOAST_TYPE } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TDescriptionVersion } from "@plane/types";
-import { Avatar, EModalPosition, EModalWidth, Loader, ModalCore } from "@plane/ui";
-import { calculateTimeAgo, cn, getFileURL } from "@plane/utils";
+import { setToast, TOAST_TYPE } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TDescriptionVersion } from "@dragonfruit/types";
+import { Avatar, EModalPosition, EModalWidth, Loader, ModalCore } from "@dragonfruit/ui";
+import { calculateTimeAgo, cn, getFileURL } from "@dragonfruit/utils";
 // components
 import { RichTextEditor } from "@/components/editor/rich-text";
 // hooks

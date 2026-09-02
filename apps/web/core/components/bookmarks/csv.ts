@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { TProjectBookmarkCreatePayload } from "@plane/types";
+import type { TProjectBookmarkCreatePayload } from "@dragonfruit/types";
 
 /**
  * Parse CSV text into rows of string cells. Handles quoted fields, escaped

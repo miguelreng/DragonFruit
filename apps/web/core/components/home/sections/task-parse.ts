@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { TIssuePriorities } from "@plane/types";
+import type { TIssuePriorities } from "@dragonfruit/types";
 
 // --- Inline natural-language parsing (Todoist/Things-style) -----------------
 // `#label` → labels, `@date` → due date, `!priority` → priority, `/project` → project.

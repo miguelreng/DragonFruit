@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import { ListFilter } from "@/components/icons/lucide-shim";
 import { ChevronDownIcon } from "@/components/icons/propel-shim";
 // components
-import { Row } from "@plane/ui";
+import { Row } from "@dragonfruit/ui";
 import { FiltersDropdown } from "@/components/issues/issue-layouts/filters";
 import { ViewFiltersSelection } from "@/components/views/filters/filter-selection";
 import { ViewOrderByDropdown } from "@/components/views/filters/order-by";

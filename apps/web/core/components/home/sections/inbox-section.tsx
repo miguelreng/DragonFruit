@@ -8,7 +8,7 @@ import { useEffect, useRef } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
-import { ENotificationLoader, ENotificationQueryParamType } from "@plane/constants";
+import { ENotificationLoader, ENotificationQueryParamType } from "@dragonfruit/constants";
 import { Bell } from "@/components/icons/lucide-shim";
 import { NotificationItem } from "@/components/workspace-notifications/sidebar/notification-card/item";
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";

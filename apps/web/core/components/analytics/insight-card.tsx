@@ -6,8 +6,8 @@
 
 // plane package imports
 import React from "react";
-import type { IAnalyticsResponseFields } from "@plane/types";
-import { Loader } from "@plane/ui";
+import type { IAnalyticsResponseFields } from "@dragonfruit/types";
+import { Loader } from "@dragonfruit/ui";
 
 export type InsightCardProps = {
   data?: IAnalyticsResponseFields;

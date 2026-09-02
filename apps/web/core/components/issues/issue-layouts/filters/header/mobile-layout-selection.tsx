@@ -4,12 +4,12 @@
  * See the LICENSE file for details.
  */
 
-import { ISSUE_LAYOUTS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { getButtonStyling } from "@plane/propel/button";
+import { ISSUE_LAYOUTS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { getButtonStyling } from "@dragonfruit/propel/button";
 import { ChevronDownIcon } from "@/components/icons/propel-shim";
-import { EIssueLayoutTypes } from "@plane/types";
-import { CustomMenu } from "@plane/ui";
+import { EIssueLayoutTypes } from "@dragonfruit/types";
+import { CustomMenu } from "@dragonfruit/ui";
 import { IssueLayoutIcon } from "../../layout-icon";
 
 export function MobileLayoutSelection({

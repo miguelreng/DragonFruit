@@ -5,20 +5,20 @@
  */
 
 import type { MutableRefObject } from "react";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 import { useRef, useState } from "react";
 import type { LucideIcon } from "@/components/icons/lucide-shim";
 // plane helpers
-import { PROJECT_SETTINGS_TRACKER_ELEMENTS } from "@plane/constants";
-import { useOutsideClickDetector } from "@plane/hooks";
+import { PROJECT_SETTINGS_TRACKER_ELEMENTS } from "@dragonfruit/constants";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
 import type { ISvgIcons } from "@/components/icons/propel-shim";
 import { CloseIcon } from "@/components/icons/propel-shim";
 // types
-import type { IIssueLabel } from "@plane/types";
+import type { IIssueLabel } from "@dragonfruit/types";
 // ui
-import { CustomMenu, DragHandle } from "@plane/ui";
+import { CustomMenu, DragHandle } from "@dragonfruit/ui";
 // helpers
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // components
 import { LabelName } from "./label-name";
 

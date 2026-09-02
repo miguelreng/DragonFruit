@@ -5,8 +5,8 @@
  */
 
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { ContentWrapper } from "@plane/ui";
+import { useTranslation } from "@dragonfruit/i18n";
+import { ContentWrapper } from "@dragonfruit/ui";
 // components
 import { PageHead } from "@/components/core/page-title";
 import { MyTasksSection } from "@/components/home/sections/my-tasks-section";

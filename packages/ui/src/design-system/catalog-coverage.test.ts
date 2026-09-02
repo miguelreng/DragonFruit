@@ -90,17 +90,17 @@ function hasStory(root: string, entry: string): boolean {
  * should reject.
  */
 const KNOWN_GAPS_UI = new Set<string>([
-  // Empty: every @plane/ui component now has a story. Keep it that way — an entry
+  // Empty: every @dragonfruit/ui component now has a story. Keep it that way — an entry
   // here is a debt, not a parking space.
 ]);
 
 describe("design-system catalog coverage", () => {
-  it("documents every @plane/propel component", () => {
+  it("documents every @dragonfruit/propel component", () => {
     const missing = componentDirs(PROPEL_SRC).filter((e) => !EXEMPT[e] && !hasStory(PROPEL_SRC, e));
     expect(missing, `propel components without a story: ${missing.join(", ")}`).toEqual([]);
   });
 
-  it("does not add new undocumented @plane/ui components", () => {
+  it("does not add new undocumented @dragonfruit/ui components", () => {
     const missing = componentDirs(UI_SRC).filter((e) => !EXEMPT[e] && !hasStory(UI_SRC, e));
     const brandNew = missing.filter((e) => !KNOWN_GAPS_UI.has(e));
     expect(
@@ -123,16 +123,16 @@ describe("design-system catalog coverage", () => {
     // These were duplicated across both packages and have been consolidated.
     // A directory reappearing on the losing side means the fork is back.
     const mustNotExist: [string, string][] = [
-      [join(UI_SRC, "button"), "Button lives in @plane/propel/button"],
-      [join(UI_SRC, "card"), "Card lives in @plane/propel/card"],
-      [join(UI_SRC, "tooltip"), "Tooltip lives in @plane/propel/tooltip"],
-      [join(UI_SRC, "spinners"), "Spinner lives in @plane/propel/spinners"],
-      [join(PROPEL_SRC, "avatar"), "Avatar lives in @plane/ui"],
-      [join(PROPEL_SRC, "menu"), "the dropdown is CustomMenu in @plane/ui"],
-      [join(PROPEL_SRC, "skeleton"), "the skeleton is Loader in @plane/ui"],
-      [join(UI_SRC, "badge"), "Badge lives in @plane/propel/badge"],
-      [join(UI_SRC, "tabs"), "Tabs lives in @plane/propel/tabs"],
-      [join(PROPEL_SRC, "collapsible"), "Collapsible lives in @plane/ui"],
+      [join(UI_SRC, "button"), "Button lives in @dragonfruit/propel/button"],
+      [join(UI_SRC, "card"), "Card lives in @dragonfruit/propel/card"],
+      [join(UI_SRC, "tooltip"), "Tooltip lives in @dragonfruit/propel/tooltip"],
+      [join(UI_SRC, "spinners"), "Spinner lives in @dragonfruit/propel/spinners"],
+      [join(PROPEL_SRC, "avatar"), "Avatar lives in @dragonfruit/ui"],
+      [join(PROPEL_SRC, "menu"), "the dropdown is CustomMenu in @dragonfruit/ui"],
+      [join(PROPEL_SRC, "skeleton"), "the skeleton is Loader in @dragonfruit/ui"],
+      [join(UI_SRC, "badge"), "Badge lives in @dragonfruit/propel/badge"],
+      [join(UI_SRC, "tabs"), "Tabs lives in @dragonfruit/propel/tabs"],
+      [join(PROPEL_SRC, "collapsible"), "Collapsible lives in @dragonfruit/ui"],
     ];
     const resurrected = mustNotExist.filter(([p]) => existsSync(p)).map(([p, why]) => `${p} — ${why}`);
     expect(resurrected, `duplicate implementations reappeared:\n${resurrected.join("\n")}`).toEqual([]);

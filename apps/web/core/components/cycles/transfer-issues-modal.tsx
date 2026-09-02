@@ -9,9 +9,9 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { AlertCircle } from "@/components/icons/lucide-shim";
 import { SearchIcon, CycleIcon, TransferIcon, CloseIcon } from "@/components/icons/propel-shim";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { EIssuesStoreType } from "@plane/types";
-import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { EIssuesStoreType } from "@dragonfruit/types";
+import { EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
 import { useCycle } from "@/hooks/store/use-cycle";
 import { useIssues } from "@/hooks/store/use-issues";
 

@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import useSWR from "swr";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 import { WorkflowService, type TWorkflowNodeRun, type TWorkflowRun } from "@/services/workflow.service";
 import type { TWorkflowNode } from "@/services/workflow.service";
 import { ChevronDown, ChevronRight } from "@/components/icons/lucide-shim";

@@ -6,12 +6,12 @@
 
 import { useState } from "react";
 // plane imports
-import { ROLE } from "@plane/constants";
-import { Button } from "@plane/propel/button";
-import type { IWorkspaceMemberInvitation } from "@plane/types";
-import { Checkbox } from "@plane/ui";
-import { Spinner } from "@plane/propel/spinners";
-import { truncateText } from "@plane/utils";
+import { ROLE } from "@dragonfruit/constants";
+import { Button } from "@dragonfruit/propel/button";
+import type { IWorkspaceMemberInvitation } from "@dragonfruit/types";
+import { Checkbox } from "@dragonfruit/ui";
+import { Spinner } from "@dragonfruit/propel/spinners";
+import { truncateText } from "@dragonfruit/utils";
 // constants
 import { WorkspaceLogo } from "@/components/workspace/logo";
 // hooks

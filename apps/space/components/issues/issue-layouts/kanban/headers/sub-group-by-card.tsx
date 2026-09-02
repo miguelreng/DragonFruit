@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import { Record as Circle } from "@solar-icons/react/ssr";
-import { ChevronDownIcon, ChevronUpIcon } from "@plane/propel/icons";
+import { ChevronDownIcon, ChevronUpIcon } from "@dragonfruit/propel/icons";
 // mobx
 
 interface IHeaderSubGroupByCard {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EUserPermissions } from "@plane/constants";
+import { EUserPermissions } from "@dragonfruit/constants";
 import {
   canDeleteOrphanWorkspaceDoc,
   getWorkspaceDocFavoritePresentation,

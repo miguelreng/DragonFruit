@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  *
- * Solar icon shim. Historically this re-exported `@plane/icons` (lucide-named
+ * Solar icon shim. Historically this re-exported `@dragonfruit/icons` (lucide-named
  * HugeIcons). The app now standardizes on Solar icons, so every name used
  * across the codebase is mapped to its nearest Solar equivalent below.
  *
- * `export * from "@plane/icons"` is kept as a fallback: per the ES module
+ * `export * from "@dragonfruit/icons"` is kept as a fallback: per the ES module
  * spec, the explicit named exports below shadow any same-named star export,
  * so remapped names resolve to Solar while any not-yet-remapped name still
  * resolves to the original icon instead of breaking the build.
@@ -16,7 +16,7 @@ import type { ComponentType, SVGProps } from "react";
 import type { IconWeight } from "@solar-icons/react";
 import * as Solar from "@solar-icons/react/ssr";
 
-export * from "@plane/icons";
+export * from "@dragonfruit/icons";
 
 type SolarIconProps = SVGProps<SVGSVGElement> & { weight?: IconWeight; size?: string | number };
 type SolarIconComponent = ComponentType<SolarIconProps>;

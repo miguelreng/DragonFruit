@@ -5,7 +5,7 @@
  */
 
 import { Magnifer } from "@solar-icons/react/ssr";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 import { renderSolarSidebarIcon } from "@/components/sidebar/solar-icon";
 
 type Props = {

@@ -6,7 +6,7 @@
 
 import { X } from "@/components/icons/lucide-shim";
 // plane imports
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 // local imports
 import type { TPowerKContextType } from "../../core/types";
 import { useContextIndicator } from "../../hooks/use-context-indicator";

@@ -9,11 +9,11 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { ArchiveX } from "@/components/icons/lucide-shim";
 // plane imports
-import { PROJECT_AUTOMATION_MONTHS, EUserPermissions, EUserPermissionsLevel, EIconSize } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { PROJECT_AUTOMATION_MONTHS, EUserPermissions, EUserPermissionsLevel, EIconSize } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 import { StateGroupIcon, StatePropertyIcon } from "@/components/icons/propel-shim";
-import type { IProject } from "@plane/types";
-import { CustomSelect, CustomSearchSelect, ToggleSwitch, Loader } from "@plane/ui";
+import type { IProject } from "@dragonfruit/types";
+import { CustomSelect, CustomSearchSelect, ToggleSwitch, Loader } from "@dragonfruit/ui";
 import { SelectMonthModal } from "@/components/automation";
 import { SettingsControlItem } from "@/components/settings/control-item";
 // hooks

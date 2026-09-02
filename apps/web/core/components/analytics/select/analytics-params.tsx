@@ -10,11 +10,11 @@ import type { Control, UseFormSetValue } from "react-hook-form";
 import { Controller } from "react-hook-form";
 import { SlidersHorizontal } from "@/components/icons/lucide-shim";
 // plane package imports
-import { ANALYTICS_X_AXIS_VALUES, ANALYTICS_Y_AXIS_VALUES } from "@plane/constants";
+import { ANALYTICS_X_AXIS_VALUES, ANALYTICS_Y_AXIS_VALUES } from "@dragonfruit/constants";
 import { CalendarLayoutIcon } from "@/components/icons/propel-shim";
-import type { IAnalyticsParams } from "@plane/types";
-import { ChartYAxisMetric } from "@plane/types";
-import { cn } from "@plane/utils";
+import type { IAnalyticsParams } from "@dragonfruit/types";
+import { ChartYAxisMetric } from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 // plane web components
 import { SelectXAxis } from "./select-x-axis";
 import { SelectYAxis } from "./select-y-axis";

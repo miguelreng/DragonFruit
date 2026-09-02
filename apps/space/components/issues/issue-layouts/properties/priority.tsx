@@ -5,13 +5,13 @@
  */
 
 import { GraphUp as SignalHigh } from "@solar-icons/react/ssr";
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 // types
-import { PriorityIcon } from "@plane/propel/icons";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TIssuePriorities } from "@plane/types";
+import { PriorityIcon } from "@dragonfruit/propel/icons";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TIssuePriorities } from "@dragonfruit/types";
 // constants
-import { cn, getIssuePriorityFilters } from "@plane/utils";
+import { cn, getIssuePriorityFilters } from "@dragonfruit/utils";
 
 export function IssueBlockPriority({
   priority,

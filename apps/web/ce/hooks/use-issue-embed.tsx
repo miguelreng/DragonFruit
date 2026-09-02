@@ -11,9 +11,9 @@ import type {
   TWorkItemEmbedInsertAttrs,
   TWorkItemPickerMode,
   TWorkItemPickerRequest,
-} from "@plane/editor";
+} from "@dragonfruit/editor";
 // plane types
-import type { TSearchEntityRequestPayload, TSearchResponse } from "@plane/types";
+import type { TSearchEntityRequestPayload, TSearchResponse } from "@dragonfruit/types";
 // plane web components
 import { IssueEmbedCard } from "@/plane-web/components/pages";
 // components

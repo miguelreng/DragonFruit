@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { LucideIcon } from "@plane/icons";
+import type { LucideIcon } from "@dragonfruit/icons";
 import {
   AlignCenter,
   AlignLeft,
@@ -27,7 +27,7 @@ import {
   Table,
   TextQuote,
   Underline,
-} from "@plane/icons";
+} from "@dragonfruit/icons";
 import type { TCommandExtraProps, TEditorCommands } from "@/types/editor";
 
 export type TEditorTypes = "lite" | "document";

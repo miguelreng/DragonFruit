@@ -5,16 +5,16 @@
  */
 
 import { useMemo, useState } from "react";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 import { observer } from "mobx-react";
 import { useNavigate } from "react-router";
-import { EPageAccess, EUserPermissions } from "@plane/constants";
-import { Logo } from "@plane/propel/emoji-icon-picker";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TPage, TPageType } from "@plane/types";
-import { EUserProjectRoles } from "@plane/types";
-import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { EPageAccess, EUserPermissions } from "@dragonfruit/constants";
+import { Logo } from "@dragonfruit/propel/emoji-icon-picker";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TPage, TPageType } from "@dragonfruit/types";
+import { EUserProjectRoles } from "@dragonfruit/types";
+import { EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 import { ArrowLeft, File as FileIcon, GridIconShim, LayoutGrid, Search, X } from "@/components/icons/lucide-shim";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";

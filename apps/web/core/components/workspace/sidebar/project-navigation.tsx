@@ -9,9 +9,9 @@ import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { Bookmark, Calendar, Checklist, Document, FileText, Inbox, RulerPen } from "@solar-icons/react/ssr";
-import { EUserPermissionsLevel, EUserPermissions } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import type { EUserProjectRoles } from "@plane/types";
+import { EUserPermissionsLevel, EUserPermissions } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { EUserProjectRoles } from "@dragonfruit/types";
 // plane ui
 // components
 import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";

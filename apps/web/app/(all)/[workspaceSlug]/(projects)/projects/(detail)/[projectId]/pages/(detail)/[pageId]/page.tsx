@@ -9,12 +9,12 @@ import { observer } from "mobx-react";
 import Link from "next/link";
 import useSWR from "swr";
 // plane types
-import { getButtonStyling } from "@plane/propel/button";
-import type { TSearchEntityRequestPayload, TWebhookConnectionQueryParams } from "@plane/types";
-import { EFileAssetType } from "@plane/types";
+import { getButtonStyling } from "@dragonfruit/propel/button";
+import type { TSearchEntityRequestPayload, TWebhookConnectionQueryParams } from "@dragonfruit/types";
+import { EFileAssetType } from "@dragonfruit/types";
 // plane ui
 // plane utils
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // components
 import { PageHead } from "@/components/core/page-title";
 import { IssuePeekOverview } from "@/components/issues/peek-overview";

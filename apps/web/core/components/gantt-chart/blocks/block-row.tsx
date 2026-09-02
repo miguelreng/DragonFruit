@@ -8,8 +8,8 @@ import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { ArrowRight } from "@/components/icons/lucide-shim";
 // helpers
-import type { IBlockUpdateData, IGanttBlock } from "@plane/types";
-import { cn } from "@plane/utils";
+import type { IBlockUpdateData, IGanttBlock } from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import type { TSelectionHelper } from "@/hooks/use-multiple-select";

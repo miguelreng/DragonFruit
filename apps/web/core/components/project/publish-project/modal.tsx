@@ -10,14 +10,14 @@ import { useParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 
 // types
-import { Button } from "@plane/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 import { GlobeIcon, NewTabIcon, CheckIcon } from "@/components/icons/propel-shim";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TProjectPublishLayouts, TProjectPublishSettings } from "@plane/types";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TProjectPublishLayouts, TProjectPublishSettings } from "@dragonfruit/types";
 // ui
-import { Loader, ToggleSwitch, CustomSelect, ModalCore, EModalWidth } from "@plane/ui";
+import { Loader, ToggleSwitch, CustomSelect, ModalCore, EModalWidth } from "@dragonfruit/ui";
 // helpers
-import { copyTextToClipboard } from "@plane/utils";
+import { copyTextToClipboard } from "@dragonfruit/utils";
 // hooks
 import { useProjectPublish } from "@/hooks/store/use-project-publish";
 import { buildPublishedProjectUrl } from "./public-link";

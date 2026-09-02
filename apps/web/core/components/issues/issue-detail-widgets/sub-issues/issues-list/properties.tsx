@@ -12,9 +12,9 @@ import {
   Calendar as StartDatePropertyIcon,
   CalendarCheck as DueDatePropertyIcon,
 } from "@/components/icons/lucide-shim";
-import { useTranslation } from "@plane/i18n";
-import type { IIssueDisplayProperties, TIssue } from "@plane/types";
-import { cn, getDate, renderFormattedPayloadDate, shouldHighlightIssueDueDate } from "@plane/utils";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { IIssueDisplayProperties, TIssue } from "@dragonfruit/types";
+import { cn, getDate, renderFormattedPayloadDate, shouldHighlightIssueDueDate } from "@dragonfruit/utils";
 // components
 import { DateDropdown } from "@/components/dropdowns/date";
 import { DateRangeDropdown } from "@/components/dropdowns/date-range";

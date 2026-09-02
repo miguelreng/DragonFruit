@@ -8,8 +8,8 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import { Clock } from "@/components/icons/lucide-shim";
 // plane imports
-import { Avatar, Row } from "@plane/ui";
-import { cn, calculateTimeAgo, renderFormattedDate, renderFormattedTime, getFileURL } from "@plane/utils";
+import { Avatar, Row } from "@dragonfruit/ui";
+import { cn, calculateTimeAgo, renderFormattedDate, renderFormattedTime, getFileURL } from "@dragonfruit/utils";
 // hooks
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
 import { useNotification } from "@/hooks/store/notifications/use-notification";

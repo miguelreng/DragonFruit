@@ -9,10 +9,10 @@ import { useCallback, useEffect } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
-import { EIssueGroupByToServerOptions, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TGroupedIssues } from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
+import { EIssueGroupByToServerOptions, EUserPermissions, EUserPermissionsLevel } from "@dragonfruit/constants";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TGroupedIssues } from "@dragonfruit/types";
+import { EIssuesStoreType } from "@dragonfruit/types";
 // hooks
 import { useCalendarView } from "@/hooks/store/use-calendar-view";
 import { useIssues } from "@/hooks/store/use-issues";

@@ -33,9 +33,9 @@ import {
   RelatedIcon,
   WorkItemsIcon,
 } from "@/components/icons/propel-shim";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { IIssueActivity } from "@plane/types";
-import { renderFormattedDate, generateWorkItemLink, capitalizeFirstLetter } from "@plane/utils";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { IIssueActivity } from "@dragonfruit/types";
+import { renderFormattedDate, generateWorkItemLink, capitalizeFirstLetter } from "@dragonfruit/utils";
 // helpers
 import { useLabel } from "@/hooks/store/use-label";
 import { usePlatformOS } from "@/hooks/use-platform-os";

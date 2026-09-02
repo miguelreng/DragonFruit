@@ -5,7 +5,7 @@
  */
 
 import { BoardLayoutIcon, ListLayoutIcon, TimelineLayoutIcon } from "@/components/icons/propel-shim";
-import type { IBaseLayoutConfig } from "@plane/types";
+import type { IBaseLayoutConfig } from "@dragonfruit/types";
 
 export const BASE_LAYOUTS: IBaseLayoutConfig[] = [
   {

@@ -5,9 +5,9 @@
  */
 
 import { observer } from "mobx-react";
-import { EIconSize } from "@plane/constants";
+import { EIconSize } from "@dragonfruit/constants";
 import { StateGroupIcon, CloseIcon } from "@/components/icons/propel-shim";
-import { Tag } from "@plane/ui";
+import { Tag } from "@dragonfruit/ui";
 // hooks
 import { useProjectInbox } from "@/hooks/store/use-project-inbox";
 import { useProjectState } from "@/hooks/store/use-project-state";

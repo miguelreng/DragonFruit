@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { TWorkspaceSettingsTabs } from "@plane/types";
+import type { TWorkspaceSettingsTabs } from "@dragonfruit/types";
 import type { SettingsSidebarIcon } from "../../sidebar/item";
 import {
   Download,

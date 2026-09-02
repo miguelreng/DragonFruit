@@ -7,8 +7,8 @@
 // plane imports
 import { useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
-import { API_BASE_URL } from "@plane/constants";
-import type { TOAuthConfigs, TOAuthOption } from "@plane/types";
+import { API_BASE_URL } from "@dragonfruit/constants";
+import type { TOAuthConfigs, TOAuthOption } from "@dragonfruit/types";
 // assets
 import giteaLogo from "@/app/assets/logos/gitea-logo.svg?url";
 import githubLightLogo from "@/app/assets/logos/github-black.png?url";

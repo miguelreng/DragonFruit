@@ -1,5 +1,5 @@
 import type { Config } from "@react-router/dev/config";
-import { joinUrlPath } from "@plane/utils";
+import { joinUrlPath } from "@dragonfruit/utils";
 import * as dotenv from "dotenv";
 
 const isBuildCommand = process.argv.includes("build");

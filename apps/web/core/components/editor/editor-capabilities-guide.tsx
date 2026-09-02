@@ -6,9 +6,9 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { HelpCircle, Maximize2, Minimize2 } from "@/components/icons/lucide-shim";
-import { Tooltip } from "@plane/propel/tooltip";
-import { cn } from "@plane/utils";
-import { IconButton } from "@plane/propel/icon-button";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { cn } from "@dragonfruit/utils";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 /**
  * KEEP THIS CURRENT: whenever a new editor capability ships (slash command,

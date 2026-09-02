@@ -10,10 +10,10 @@ import { observer } from "mobx-react";
 import { usePopper } from "react-popper";
 import { Combobox } from "@headlessui/react";
 // plane imports
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { CheckIcon, SearchIcon, ModuleIcon } from "@/components/icons/propel-shim";
-import type { IModule } from "@plane/types";
-import { cn, sortBySelectedFirst } from "@plane/utils";
+import type { IModule } from "@dragonfruit/types";
+import { cn, sortBySelectedFirst } from "@dragonfruit/utils";
 // hooks
 import { usePlatformOS } from "@/hooks/use-platform-os";
 

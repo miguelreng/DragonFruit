@@ -4,12 +4,12 @@
  * See the LICENSE file for details.
  */
 
-import { Button } from "@plane/propel/button";
-import { ToggleSwitch } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { Button } from "@dragonfruit/propel/button";
+import { ToggleSwitch } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 import { Play, Trash } from "@/components/icons/lucide-shim";
 import type { TWorkflowView } from "./types";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 type Props = {
   currentId: string | null;

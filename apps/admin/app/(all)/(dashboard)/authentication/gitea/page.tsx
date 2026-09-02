@@ -8,8 +8,8 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import useSWR from "swr";
 // plane internal packages
-import { setPromiseToast } from "@plane/propel/toast";
-import { Loader, ToggleSwitch } from "@plane/ui";
+import { setPromiseToast } from "@dragonfruit/propel/toast";
+import { Loader, ToggleSwitch } from "@dragonfruit/ui";
 // assets
 import giteaLogo from "@/app/assets/logos/gitea-logo.svg?url";
 // components

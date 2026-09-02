@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useState } from "react";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 
 /** Minimum column width a user can drag to. */
 const MIN_COLUMN_WIDTH = 80;

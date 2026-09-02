@@ -9,9 +9,9 @@ import { observer } from "mobx-react";
 import { useParams } from "react-router";
 import { ArrowUpToLine, CaseSensitive, CheckSquare, Clipboard, History } from "@/components/icons/lucide-shim";
 // plane imports
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
 import { CheckIcon } from "@/components/icons/propel-shim";
-import { ToggleSwitch } from "@plane/ui";
+import { ToggleSwitch } from "@dragonfruit/ui";
 import { HelpCircle } from "@/components/icons/lucide-shim";
 // components
 import { openEditorCapabilitiesGuide } from "@/components/editor/editor-capabilities-guide";

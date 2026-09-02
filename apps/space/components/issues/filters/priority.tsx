@@ -7,9 +7,9 @@
 import React, { useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { ISSUE_PRIORITY_FILTERS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { PriorityIcon } from "@plane/propel/icons";
+import { ISSUE_PRIORITY_FILTERS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { PriorityIcon } from "@dragonfruit/propel/icons";
 // local imports
 import { FilterHeader } from "./helpers/filter-header";
 import { FilterOption } from "./helpers/filter-option";

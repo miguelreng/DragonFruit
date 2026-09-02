@@ -10,7 +10,7 @@ import Link from "next/link";
 import useSWR from "swr";
 // icons
 import { History, MessageSquare } from "@/components/icons/lucide-shim";
-import { calculateTimeAgo, getFileURL } from "@plane/utils";
+import { calculateTimeAgo, getFileURL } from "@dragonfruit/utils";
 // hooks
 import { ActivityIcon, ActivityMessage } from "@/components/core/activity";
 import { RichTextEditor } from "@/components/editor/rich-text";

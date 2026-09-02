@@ -7,10 +7,10 @@
 import { observer } from "mobx-react";
 import { useParams } from "react-router";
 // plane imports
-import { PROFILE_SETTINGS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import type { TProfileSettingsTabs } from "@plane/types";
-import { Breadcrumbs } from "@plane/ui";
+import { PROFILE_SETTINGS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { TProfileSettingsTabs } from "@dragonfruit/types";
+import { Breadcrumbs } from "@dragonfruit/ui";
 import { Bell, History, Key, Settings, Shield, UserRounded } from "@solar-icons/react/ssr";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";

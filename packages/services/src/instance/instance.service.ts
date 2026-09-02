@@ -5,7 +5,7 @@
  */
 
 // plane imports
-import { getPublicApiBaseUrl } from "@plane/constants";
+import { getPublicApiBaseUrl } from "@dragonfruit/constants";
 import type {
   IFormattedInstanceConfiguration,
   IInstance,
@@ -13,7 +13,7 @@ import type {
   IInstanceConfiguration,
   IInstanceInfo,
   TPage,
-} from "@plane/types";
+} from "@dragonfruit/types";
 // api service
 import { APIService } from "../api.service";
 

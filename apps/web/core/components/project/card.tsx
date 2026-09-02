@@ -10,17 +10,17 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArchiveRestoreIcon, Settings, UserPlus } from "@/components/icons/lucide-shim";
 // plane imports
-import { EUserPermissions, EUserPermissionsLevel, IS_FAVORITE_MENU_OPEN } from "@plane/constants";
-import { useLocalStorage } from "@plane/hooks";
-import { Button } from "@plane/propel/button";
-import { Logo } from "@plane/propel/emoji-icon-picker";
+import { EUserPermissions, EUserPermissionsLevel, IS_FAVORITE_MENU_OPEN } from "@dragonfruit/constants";
+import { useLocalStorage } from "@dragonfruit/hooks";
+import { Button } from "@dragonfruit/propel/button";
+import { Logo } from "@dragonfruit/propel/emoji-icon-picker";
 import { LinkIcon, LockIcon, NewTabIcon, TrashIcon, CheckIcon } from "@/components/icons/propel-shim";
-import { setPromiseToast, setToast, TOAST_TYPE } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { IProject } from "@plane/types";
-import type { TContextMenuItem } from "@plane/ui";
-import { Avatar, AvatarGroup, ContextMenu, FavoriteStar } from "@plane/ui";
-import { copyUrlToClipboard, cn, getFileURL, renderFormattedDate } from "@plane/utils";
+import { setPromiseToast, setToast, TOAST_TYPE } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { IProject } from "@dragonfruit/types";
+import type { TContextMenuItem } from "@dragonfruit/ui";
+import { Avatar, AvatarGroup, ContextMenu, FavoriteStar } from "@dragonfruit/ui";
+import { copyUrlToClipboard, cn, getFileURL, renderFormattedDate } from "@dragonfruit/utils";
 // components
 // hooks
 import { useMember } from "@/hooks/store/use-member";

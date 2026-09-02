@@ -7,9 +7,9 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 import useSWR from "swr";
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IWebhook } from "@plane/types";
+import { EUserPermissions, EUserPermissionsLevel } from "@dragonfruit/constants";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { IWebhook } from "@dragonfruit/types";
 // ui
 // components
 import { AppLoadingScreen } from "@/components/common/app-loading-screen";

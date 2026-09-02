@@ -6,13 +6,13 @@
 
 import type { ReactNode } from "react";
 // plane imports
-import type { TNotification } from "@plane/types";
+import type { TNotification } from "@dragonfruit/types";
 import {
   convertMinutesToHoursMinutesString,
   renderFormattedDate,
   sanitizeCommentForNotification,
   stripAndTruncateHTML,
-} from "@plane/utils";
+} from "@dragonfruit/utils";
 // components
 import { LiteTextEditor } from "@/components/editor/lite-text";
 import {

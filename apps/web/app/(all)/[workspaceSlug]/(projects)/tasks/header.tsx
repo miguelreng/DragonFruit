@@ -6,8 +6,8 @@
 
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import type { TBaseIssue } from "@plane/types";
-import { Breadcrumbs, Header } from "@plane/ui";
+import type { TBaseIssue } from "@dragonfruit/types";
+import { Breadcrumbs, Header } from "@dragonfruit/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { MyTasksFilterPills } from "@/components/home/sections/my-tasks-filter-pills";
@@ -18,8 +18,8 @@ import { GridIconShim, List } from "@/components/icons/lucide-shim";
 import { useProjectState } from "@/hooks/store/use-project-state";
 import { useUser } from "@/hooks/store/user";
 import useLocalStorage from "@/hooks/use-local-storage";
-import { cn } from "@plane/utils";
-import { IconButton } from "@plane/propel/icon-button";
+import { cn } from "@dragonfruit/utils";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 /** List/Table switcher — same segmented icon-toggle treatment as the Docs header. */
 function MyTasksLayoutToggle({ slug }: { slug: string }) {

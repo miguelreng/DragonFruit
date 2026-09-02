@@ -9,9 +9,9 @@ import type { ReactNode } from "react";
 import React from "react";
 import { Calendar } from "@/components/icons/lucide-shim";
 // plane package imports
-import { ANALYTICS_DURATION_FILTER_OPTIONS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { CustomSearchSelect } from "@plane/ui";
+import { ANALYTICS_DURATION_FILTER_OPTIONS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { CustomSearchSelect } from "@dragonfruit/ui";
 // types
 import type { TDropdownProps } from "@/components/dropdowns/types";
 

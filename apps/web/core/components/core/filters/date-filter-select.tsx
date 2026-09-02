@@ -8,7 +8,7 @@ import React from "react";
 import { CalendarDays } from "@/components/icons/lucide-shim";
 // ui
 import { CalendarAfterIcon, CalendarBeforeIcon } from "@/components/icons/propel-shim";
-import { CustomSelect } from "@plane/ui";
+import { CustomSelect } from "@dragonfruit/ui";
 
 type Props = {
   title: string;

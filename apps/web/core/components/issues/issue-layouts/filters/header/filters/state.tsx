@@ -8,11 +8,11 @@ import { Collapse } from "@/components/common/collapse";
 import React, { useMemo, useState } from "react";
 import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
-import { EIconSize } from "@plane/constants";
+import { EIconSize } from "@dragonfruit/constants";
 import { StateGroupIcon } from "@/components/icons/propel-shim";
-import type { IState } from "@plane/types";
+import type { IState } from "@dragonfruit/types";
 // components
-import { Loader } from "@plane/ui";
+import { Loader } from "@dragonfruit/ui";
 import { FilterHeader, FilterOption } from "@/components/issues/issue-layouts/filters";
 // ui
 // types

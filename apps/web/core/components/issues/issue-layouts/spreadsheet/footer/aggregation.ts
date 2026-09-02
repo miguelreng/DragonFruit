@@ -8,7 +8,7 @@
 // can pick an aggregation; the value is computed across the currently loaded
 // rows. The chosen aggregation per column is persisted in localStorage.
 
-import type { IIssueDisplayProperties, TIssue } from "@plane/types";
+import type { IIssueDisplayProperties, TIssue } from "@dragonfruit/types";
 
 export type TAggregationType =
   | "none"

@@ -8,12 +8,12 @@ import type { ChangeEvent } from "react";
 import { useState } from "react";
 import type { UseFormSetValue } from "react-hook-form";
 import { Controller, useFormContext } from "react-hook-form";
-import { ETabIndices } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { EmojiPicker, EmojiIconPickerTypes, Logo } from "@plane/propel/emoji-icon-picker";
-import type { IProject } from "@plane/types";
-import { Input, TextArea, ToggleSwitch } from "@plane/ui";
-import { projectIdentifierSanitizer, getTabIndex } from "@plane/utils";
+import { ETabIndices } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { EmojiPicker, EmojiIconPickerTypes, Logo } from "@dragonfruit/propel/emoji-icon-picker";
+import type { IProject } from "@dragonfruit/types";
+import { Input, TextArea, ToggleSwitch } from "@dragonfruit/ui";
+import { projectIdentifierSanitizer, getTabIndex } from "@dragonfruit/utils";
 import type { TProject } from "@/plane-web/types/projects";
 
 type Props = {

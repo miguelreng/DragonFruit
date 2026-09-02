@@ -8,8 +8,8 @@ import { lazy, Suspense } from "react";
 import { observer } from "mobx-react";
 import { useParams, usePathname } from "next/navigation";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import type { THomeWidgetKeys, THomeWidgetProps } from "@plane/types";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { THomeWidgetKeys, THomeWidgetProps } from "@dragonfruit/types";
 // components
 import { SimpleEmptyState } from "@/components/empty-state/simple-empty-state-root";
 // hooks

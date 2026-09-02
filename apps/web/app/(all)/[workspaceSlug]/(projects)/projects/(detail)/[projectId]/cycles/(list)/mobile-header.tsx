@@ -10,8 +10,8 @@ import { observer } from "mobx-react";
 import type { ISvgIcons } from "@/components/icons/propel-shim";
 import { TimelineLayoutIcon, GridLayoutIcon, ListLayoutIcon } from "@/components/icons/propel-shim";
 // plane package imports
-import type { TCycleLayoutOptions } from "@plane/types";
-import { CustomMenu } from "@plane/ui";
+import type { TCycleLayoutOptions } from "@dragonfruit/types";
+import { CustomMenu } from "@dragonfruit/ui";
 // hooks
 import { useCycleFilter } from "@/hooks/store/use-cycle-filter";
 import { useProject } from "@/hooks/store/use-project";

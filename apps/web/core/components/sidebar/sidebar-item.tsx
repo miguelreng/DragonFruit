@@ -6,8 +6,8 @@
 
 import React from "react";
 import Link from "next/link";
-import { Tooltip } from "@plane/propel/tooltip";
-import { cn } from "@plane/utils";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { cn } from "@dragonfruit/utils";
 
 // ============================================================================
 // TYPES

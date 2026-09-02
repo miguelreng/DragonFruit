@@ -1,5 +1,5 @@
 import type { HocuspocusProvider } from "@hocuspocus/provider";
-import { generateRandomColor, hslToHex } from "@plane/utils";
+import { generateRandomColor, hslToHex } from "@dragonfruit/utils";
 import type { RefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 

@@ -9,10 +9,10 @@ import { Link } from "react-router";
 import { Eye, Star } from "@solar-icons/react/ssr";
 import { MoreHorizontal } from "@/components/icons/lucide-shim";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { Tooltip } from "@plane/propel/tooltip";
-import { CustomMenu } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { CustomMenu } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 // local imports
 import type { TNavigationItem } from "./tab-navigation-root";
 import type { TTabPreferences } from "./tab-navigation-utils";

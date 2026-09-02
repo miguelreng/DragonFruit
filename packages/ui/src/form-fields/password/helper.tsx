@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { E_PASSWORD_STRENGTH } from "@plane/constants";
+import { E_PASSWORD_STRENGTH } from "@dragonfruit/constants";
 
 export interface StrengthInfo {
   message: string;

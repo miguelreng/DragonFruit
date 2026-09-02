@@ -62,7 +62,7 @@ export const PageShell: Story = {
     <Page>
       <Section
         title="El esqueleto"
-        blurb="Toda vista de la app se compone igual: una franja de header, y debajo un contenedor de contenido que scrollea. Los dos vienen de @plane/ui."
+        blurb="Toda vista de la app se compone igual: una franja de header, y debajo un contenedor de contenido que scrollea. Los dos vienen de @dragonfruit/ui."
       >
         <div className="overflow-hidden rounded-lg border border-subtle">
           <div className="flex h-14 items-center justify-between border-b border-subtle bg-surface-1 px-[1.35rem]">
@@ -78,7 +78,7 @@ export const PageShell: Story = {
           </div>
         </div>
 
-        <Snippet>{`import { Header, EHeaderVariant, ContentWrapper, ERowVariant } from "@plane/ui";
+        <Snippet>{`import { Header, EHeaderVariant, ContentWrapper, ERowVariant } from "@dragonfruit/ui";
 
 <Header variant={EHeaderVariant.PRIMARY}>
   <Header.LeftItem>{breadcrumbs}</Header.LeftItem>
@@ -180,7 +180,7 @@ export const Scrolling: Story = {
 </div>`}</Snippet>
         <p className="mt-3 text-13 text-secondary">
           <code>.scroll-shadow</code> es una utilidad scroll-driven de{" "}
-          <code>@plane/tailwind-config</code>: pinta una elevación en el borde superior sólo cuando hay contenido
+          <code>@dragonfruit/tailwind-config</code>: pinta una elevación en el borde superior sólo cuando hay contenido
           desplazado (<code>[data-scrolled=&quot;true&quot;]</code>). Reúsala en cualquier scroller nuevo — no montes tu
           propio gradiente.
         </p>

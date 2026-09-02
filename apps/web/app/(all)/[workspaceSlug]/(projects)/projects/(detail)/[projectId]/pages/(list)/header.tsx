@@ -8,16 +8,16 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 // constants
-import { EPageAccess } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { EPageAccess } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 // plane types
-import { Button } from "@plane/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 import { ListFilter } from "@/components/icons/lucide-shim";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TPage, TPageType, TPageNavigationTabs } from "@plane/types";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TPage, TPageType, TPageNavigationTabs } from "@dragonfruit/types";
 // plane ui
-import { Breadcrumbs, Header } from "@plane/ui";
-import { calculateTotalFilters } from "@plane/utils";
+import { Breadcrumbs, Header } from "@dragonfruit/ui";
+import { calculateTotalFilters } from "@dragonfruit/utils";
 // helpers
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 // components

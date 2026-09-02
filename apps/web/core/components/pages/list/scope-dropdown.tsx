@@ -7,10 +7,10 @@
 import { useRouter } from "next/navigation";
 import { ChevronDown } from "@/components/icons/lucide-shim";
 // plane imports
-import { getButtonStyling } from "@plane/propel/button";
+import { getButtonStyling } from "@dragonfruit/propel/button";
 import { CheckIcon } from "@/components/icons/propel-shim";
-import type { TPageNavigationTabs } from "@plane/types";
-import { CustomMenu } from "@plane/ui";
+import type { TPageNavigationTabs } from "@dragonfruit/types";
+import { CustomMenu } from "@dragonfruit/ui";
 
 type Props = {
   workspaceSlug: string;

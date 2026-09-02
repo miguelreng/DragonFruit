@@ -5,7 +5,7 @@
  */
 
 import type { ISvgIcons } from "@/components/icons/propel-shim";
-import type { TContextMenuItem } from "@plane/ui";
+import type { TContextMenuItem } from "@dragonfruit/ui";
 
 export interface CopyMenuHelperProps {
   baseItem: {

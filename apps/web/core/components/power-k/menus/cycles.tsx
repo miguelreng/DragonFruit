@@ -8,7 +8,7 @@ import React from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { ContrastIcon } from "@/components/icons/propel-shim";
-import type { ICycle } from "@plane/types";
+import type { ICycle } from "@dragonfruit/types";
 // local imports
 import { PowerKMenuBuilder } from "./builder";
 

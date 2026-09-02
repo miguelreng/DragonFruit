@@ -6,9 +6,9 @@
 
 import { useRouter } from "next/navigation";
 // plane types
-import { Logo } from "@plane/propel/emoji-icon-picker";
-import type { TActivityEntityData, TProjectEntityData } from "@plane/types";
-import { calculateTimeAgo } from "@plane/utils";
+import { Logo } from "@dragonfruit/propel/emoji-icon-picker";
+import type { TActivityEntityData, TProjectEntityData } from "@dragonfruit/types";
+import { calculateTimeAgo } from "@dragonfruit/utils";
 // components
 import { ListItem } from "@/components/core/list";
 import { MemberDropdown } from "@/components/dropdowns/member/dropdown";

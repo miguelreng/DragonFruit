@@ -7,10 +7,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { usePopper } from "react-popper";
-import { ISSUE_PRIORITIES } from "@plane/constants";
-import type { TIssuePriorities } from "@plane/types";
-import { Logo } from "@plane/propel/emoji-icon-picker";
-import { cn, renderFormattedDate } from "@plane/utils";
+import { ISSUE_PRIORITIES } from "@dragonfruit/constants";
+import type { TIssuePriorities } from "@dragonfruit/types";
+import { Logo } from "@dragonfruit/propel/emoji-icon-picker";
+import { cn, renderFormattedDate } from "@dragonfruit/utils";
 import { ProjectDropdown } from "@/components/dropdowns/project/dropdown";
 import { Loader, Plus } from "@/components/icons/lucide-shim";
 import { useLabel } from "@/hooks/store/use-label";

@@ -11,7 +11,7 @@ import type {
   TFilterValue,
   TWorkItemFilterExpression,
   TWorkItemFilterProperty,
-} from "@plane/types";
+} from "@dragonfruit/types";
 // local imports
 import { workItemFiltersAdapter } from "../store/work-item-filters/adapter";
 import { buildTempFilterExpressionFromConditions } from "./rich-filter.helper";

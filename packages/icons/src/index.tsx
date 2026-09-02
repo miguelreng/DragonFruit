@@ -180,7 +180,7 @@ type LucideShimProps = React.SVGAttributes<SVGSVGElement> & {
 /**
  * Wraps a MingCute icon definition as a component that accepts the same prop
  * shape our Lucide-style exports used (className, color, etc.), so call-sites
- * importing icons from "@plane/icons" keep working unchanged after the swap.
+ * importing icons from "@dragonfruit/icons" keep working unchanged after the swap.
  */
 function huge(Icon: React.ComponentType<LucideShimProps>) {
   return function HugeShim({ color = "currentColor", size, width, height, ...rest }: LucideShimProps) {

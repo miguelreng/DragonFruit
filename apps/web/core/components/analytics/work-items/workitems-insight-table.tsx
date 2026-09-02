@@ -10,14 +10,14 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
 import { UserRound } from "@/components/icons/lucide-shim";
-import { useTranslation } from "@plane/i18n";
-import { Logo } from "@plane/propel/emoji-icon-picker";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Logo } from "@dragonfruit/propel/emoji-icon-picker";
 import { ProjectIcon } from "@/components/icons/propel-shim";
 // plane package imports
-import type { AnalyticsTableDataMap, WorkItemInsightColumns } from "@plane/types";
+import type { AnalyticsTableDataMap, WorkItemInsightColumns } from "@dragonfruit/types";
 // plane web components
-import { Avatar } from "@plane/ui";
-import { getFileURL } from "@plane/utils";
+import { Avatar } from "@dragonfruit/ui";
+import { getFileURL } from "@dragonfruit/utils";
 // hooks
 import { useAnalytics } from "@/hooks/store/use-analytics";
 import { useProject } from "@/hooks/store/use-project";

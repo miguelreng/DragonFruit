@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Button } from "@plane/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 import { CheckSquare, Loader2, Pencil, Plus, Trash2 } from "@/components/icons/lucide-shim";
 import { WorkItemTemplateService, type TWorkItemTemplate } from "@/services/issue/work-item-template.service";
 import { WorkItemTemplateModal } from "./work-item-template-modal";

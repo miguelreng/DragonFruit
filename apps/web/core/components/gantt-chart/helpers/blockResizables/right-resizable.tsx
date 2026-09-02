@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 // plane utils
-import { cn, renderFormattedDate } from "@plane/utils";
+import { cn, renderFormattedDate } from "@dragonfruit/utils";
 //helpers
 //
 //hooks

@@ -8,11 +8,11 @@ import { observer } from "mobx-react";
 
 // plane types
 import { CloseIcon } from "@/components/icons/propel-shim";
-import type { TInboxIssueFilterMemberKeys } from "@plane/types";
+import type { TInboxIssueFilterMemberKeys } from "@dragonfruit/types";
 // plane ui
-import { Avatar, Tag } from "@plane/ui";
+import { Avatar, Tag } from "@dragonfruit/ui";
 // helpers
-import { getFileURL } from "@plane/utils";
+import { getFileURL } from "@dragonfruit/utils";
 // hooks
 import { useMember } from "@/hooks/store/use-member";
 import { useProjectInbox } from "@/hooks/store/use-project-inbox";

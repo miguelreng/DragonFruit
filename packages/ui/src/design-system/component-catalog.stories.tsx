@@ -6,9 +6,9 @@
 
 import React from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Button } from "@plane/propel/button";
-import { Spinner } from "@plane/propel/spinners";
-import { Tooltip } from "@plane/propel/tooltip";
+import { Button } from "@dragonfruit/propel/button";
+import { Spinner } from "@dragonfruit/propel/spinners";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 import { Avatar } from "../avatar";
 import { Loader } from "../loader";
 import { EModalWidth, EModalPosition } from "../modals";
@@ -111,7 +111,7 @@ export const SlotMap: Story = {
         <Slot
           slot="Button with a label"
           use="<Button>"
-          from="@plane/propel/button"
+          from="@dragonfruit/propel/button"
           instead="un <button> a mano con clases copiadas"
         >
           <p className="text-12 text-tertiary">
@@ -124,14 +124,14 @@ export const SlotMap: Story = {
         <Slot
           slot="Icon-only button"
           use="<IconButton>"
-          from="@plane/propel/icon-button"
+          from="@dragonfruit/propel/icon-button"
           instead='<button className="grid size-6 place-items-center …"> (46 casos, bajando desde 127)'
         />
 
         <Slot
           slot="Modal / dialog"
           use="<ModalCore>"
-          from="@plane/ui"
+          from="@dragonfruit/ui"
           instead="<Dialog> de @headlessui directo (8 archivos) o un overlay fixed inset-0 a mano (9 archivos)"
         >
           <p className="text-12 text-tertiary">
@@ -143,7 +143,7 @@ export const SlotMap: Story = {
         <Slot
           slot="Dropdown / menú"
           use="<CustomMenu>"
-          from="@plane/ui"
+          from="@dragonfruit/ui"
           instead="<Menu> de @headlessui directo (6 archivos)"
         >
           <p className="text-12 text-tertiary">
@@ -155,19 +155,19 @@ export const SlotMap: Story = {
         <Slot
           slot="Tooltip"
           use="<Tooltip>"
-          from="@plane/propel/tooltip"
+          from="@dragonfruit/propel/tooltip"
           instead="el atributo title= nativo sobre botones y enlaces (59 casos hoy)"
         />
 
         <Slot
           slot="Skeleton de carga"
           use="<Loader> + <Loader.Item>"
-          from="@plane/ui"
+          from="@dragonfruit/ui"
         />
 
-        <Slot slot="Spinner" use="<Spinner>" from="@plane/propel/spinners" />
+        <Slot slot="Spinner" use="<Spinner>" from="@dragonfruit/propel/spinners" />
 
-        <Slot slot="Avatar" use="<Avatar> / <AvatarGroup>" from="@plane/ui" instead="un <img> con rounded-full" />
+        <Slot slot="Avatar" use="<Avatar> / <AvatarGroup>" from="@dragonfruit/ui" instead="un <img> con rounded-full" />
       </Section>
     </Page>
   ),
@@ -181,7 +181,7 @@ export const Modals: Story = {
         title="ModalCore es el contenedor; tú pones el contenido"
         blurb="ModalCore resuelve backdrop, foco atrapado, cierre con Escape, scroll lock y animación. Nunca vuelvas a montar eso a mano."
       >
-        <Snippet>{`import { ModalCore, EModalWidth, EModalPosition } from "@plane/ui";
+        <Snippet>{`import { ModalCore, EModalWidth, EModalPosition } from "@dragonfruit/ui";
 
 <ModalCore
   isOpen={isOpen}
@@ -211,7 +211,7 @@ export const Modals: Story = {
         title="AlertModalCore para confirmar algo destructivo"
         blurb="No montes un ModalCore con tu propio icono y tus propios botones para pedir una confirmación. AlertModalCore ya define la jerarquía correcta: Cancel secundario, la acción en su variante de riesgo."
       >
-        <Snippet>{`import { AlertModalCore } from "@plane/ui";
+        <Snippet>{`import { AlertModalCore } from "@dragonfruit/ui";
 
 <AlertModalCore
   isOpen={isOpen}
@@ -264,7 +264,7 @@ export const Loading: Story = {
             <div className="flex items-center justify-center rounded-lg border border-subtle bg-layer-2 p-4">
               <Spinner height="28px" width="28px" />
             </div>
-            <Snippet>{`import { Spinner } from "@plane/propel/spinners";
+            <Snippet>{`import { Spinner } from "@dragonfruit/propel/spinners";
 
 <Spinner height="28px" width="28px" />`}</Snippet>
           </div>
@@ -316,8 +316,8 @@ export const TooltipsAndAvatars: Story = {
             title= nativo
           </button>
         </div>
-        <Snippet>{`import { Spinner } from "@plane/propel/spinners";
-import { Tooltip } from "@plane/propel/tooltip";
+        <Snippet>{`import { Spinner } from "@dragonfruit/propel/spinners";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 
 <Tooltip tooltipContent="Archivar tarea" position="top">
   <span className="inline-block">{trigger}</span>
@@ -337,7 +337,7 @@ import { Tooltip } from "@plane/propel/tooltip";
             </div>
           ))}
         </div>
-        <Snippet>{`import { Avatar, AvatarGroup } from "@plane/ui";
+        <Snippet>{`import { Avatar, AvatarGroup } from "@dragonfruit/ui";
 
 <Avatar name={member.display_name} src={member.avatar_url} size="base" />
 
@@ -432,14 +432,14 @@ export const KnownDuplicates: Story = {
             </thead>
             <tbody className="text-secondary">
               {[
-                ["Button", "@plane/propel/button", "— (ya consolidado)", "Una sola implementación; hay regla de lint"],
-                ["Tooltip", "@plane/propel/tooltip", "— (consolidado)", "el de @plane/ui fue borrado"],
-                ["Dropdown", "@plane/ui CustomMenu", "— (consolidado)", "propel/menu borrado"],
-                ["Avatar", "@plane/ui", "— (consolidado)", "propel/avatar borrado"],
-                ["Spinner", "@plane/propel/spinners", "— (consolidado)", "el de @plane/ui fue borrado"],
-                ["Skeleton", "@plane/ui Loader", "— (consolidado)", "propel/skeleton borrado, tenía 0 usos"],
-                ["Card", "@plane/propel/card", "— (consolidado)", "eran copias idénticas"],
-                ["Popover", "@plane/propel/popover", "@plane/ui", "⚠️ el de ui NO portalea: un overflow-hidden lo recorta"],
+                ["Button", "@dragonfruit/propel/button", "— (ya consolidado)", "Una sola implementación; hay regla de lint"],
+                ["Tooltip", "@dragonfruit/propel/tooltip", "— (consolidado)", "el de @dragonfruit/ui fue borrado"],
+                ["Dropdown", "@dragonfruit/ui CustomMenu", "— (consolidado)", "propel/menu borrado"],
+                ["Avatar", "@dragonfruit/ui", "— (consolidado)", "propel/avatar borrado"],
+                ["Spinner", "@dragonfruit/propel/spinners", "— (consolidado)", "el de @dragonfruit/ui fue borrado"],
+                ["Skeleton", "@dragonfruit/ui Loader", "— (consolidado)", "propel/skeleton borrado, tenía 0 usos"],
+                ["Card", "@dragonfruit/propel/card", "— (consolidado)", "eran copias idénticas"],
+                ["Popover", "@dragonfruit/propel/popover", "@dragonfruit/ui", "⚠️ el de ui NO portalea: un overflow-hidden lo recorta"],
                 ["Table", "ambos, a propósito", "—", "propel = primitivos; ui = renderer data/columns"],
               ].map(([a, b, c, d]) => (
                 <tr key={a} className="border-b border-subtle last:border-b-0">

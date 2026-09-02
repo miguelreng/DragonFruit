@@ -7,7 +7,7 @@
 import { useEffect, useRef } from "react";
 import { observer } from "mobx-react";
 // plane helpers
-import { useOutsideClickDetector } from "@plane/hooks";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
 // hooks
 import { useTheme } from "@/hooks/store";
 // components

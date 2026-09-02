@@ -9,10 +9,10 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { EmptyStateDetailed } from "@plane/propel/empty-state";
-import type { TCycleFilters } from "@plane/types";
-import { calculateTotalFilters } from "@plane/utils";
+import { useTranslation } from "@dragonfruit/i18n";
+import { EmptyStateDetailed } from "@dragonfruit/propel/empty-state";
+import type { TCycleFilters } from "@dragonfruit/types";
+import { calculateTotalFilters } from "@dragonfruit/utils";
 // components
 import { CycleModuleListLayoutLoader } from "@/components/ui/loader/cycle-module-list-loader";
 // hooks

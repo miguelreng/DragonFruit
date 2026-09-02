@@ -11,11 +11,11 @@ import { useParams } from "next/navigation";
 import type { UseFormRegister } from "react-hook-form";
 import { useForm } from "react-hook-form";
 // plane imports
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { PlusIcon } from "@/components/icons/propel-shim";
-import { setPromiseToast } from "@plane/propel/toast";
-import type { IProject, TIssue, EIssueLayoutTypes } from "@plane/types";
-import { cn, createIssuePayload } from "@plane/utils";
+import { setPromiseToast } from "@dragonfruit/propel/toast";
+import type { IProject, TIssue, EIssueLayoutTypes } from "@dragonfruit/types";
+import { cn, createIssuePayload } from "@dragonfruit/utils";
 // plane web imports
 import { QuickAddIssueFormRoot } from "@/plane-web/components/issues/quick-add";
 // local imports

@@ -5,7 +5,7 @@
  */
 
 // plane imports
-import type { TFilterGroupNode, TFilterProperty } from "@plane/types";
+import type { TFilterGroupNode, TFilterProperty } from "@dragonfruit/types";
 // local imports
 import { getGroupChildren } from "../types/shared";
 

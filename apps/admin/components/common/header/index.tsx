@@ -5,11 +5,11 @@
  */
 
 import { observer } from "mobx-react";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 import { usePathname } from "next/navigation";
 import { HamburgerMenu as Menu, Settings } from "@solar-icons/react/ssr";
 // icons
-import { Breadcrumbs } from "@plane/ui";
+import { Breadcrumbs } from "@dragonfruit/ui";
 // components
 import { BreadcrumbLink } from "../breadcrumb-link";
 // hooks

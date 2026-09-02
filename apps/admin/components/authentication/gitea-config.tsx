@@ -9,10 +9,10 @@ import Link from "next/link";
 // icons
 import { SettingsMinimalistic as Settings2 } from "@solar-icons/react/ssr";
 // plane internal packages
-import { getButtonStyling } from "@plane/propel/button";
-import type { TInstanceAuthenticationMethodKeys } from "@plane/types";
-import { ToggleSwitch } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { getButtonStyling } from "@dragonfruit/propel/button";
+import type { TInstanceAuthenticationMethodKeys } from "@dragonfruit/types";
+import { ToggleSwitch } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useInstance } from "@/hooks/store";
 

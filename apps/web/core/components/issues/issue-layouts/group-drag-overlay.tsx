@@ -7,11 +7,11 @@
 import { useRef } from "react";
 import { AlertCircle } from "@/components/icons/lucide-shim";
 // plane imports
-import { ISSUE_ORDER_BY_OPTIONS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import type { TIssueOrderByOptions } from "@plane/types";
+import { ISSUE_ORDER_BY_OPTIONS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { TIssueOrderByOptions } from "@dragonfruit/types";
 // helpers
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // plane web imports
 import { WorkFlowDisabledOverlay } from "@/plane-web/components/workflow";
 

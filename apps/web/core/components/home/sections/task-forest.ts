@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import type { TBaseIssue } from "@plane/types";
-import { getDate } from "@plane/utils";
+import type { TBaseIssue } from "@dragonfruit/types";
+import { getDate } from "@dragonfruit/utils";
 
 const PRIORITY_RANK: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3, none: 4 };
 const TASK_SORT_STEP = 65535;

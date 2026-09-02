@@ -5,7 +5,7 @@
  */
 
 // plane imports
-import { EAuthModes } from "@plane/constants";
+import { EAuthModes } from "@dragonfruit/constants";
 // components
 import { ResetPasswordForm } from "@/components/account/auth-forms/reset-password";
 import { AuthHeader } from "@/components/auth-screens/header";

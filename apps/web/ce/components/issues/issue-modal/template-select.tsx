@@ -6,8 +6,8 @@
 
 import { useContext, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { CustomMenu } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { CustomMenu } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 import { ChevronDown } from "@/components/icons/lucide-shim";
 import { IssueModalContext } from "@/components/issues/issue-modal/context";
 import { WorkItemTemplateService, type TWorkItemTemplate } from "@/services/issue/work-item-template.service";

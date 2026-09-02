@@ -1,5 +1,5 @@
 {
-  "name": "@plane/i18n",
+  "name": "@dragonfruit/i18n",
   "version": "1.3.1",
   "private": true,
   "description": "I18n shared across multiple apps internally",
@@ -33,7 +33,7 @@
     "react-i18next": "catalog:"
   },
   "devDependencies": {
-    "@plane/typescript-config": "workspace:*",
+    "@dragonfruit/typescript-config": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "tsdown": "catalog:",

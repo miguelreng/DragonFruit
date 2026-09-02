@@ -5,8 +5,8 @@
  */
 
 // plane types
-import { useTranslation } from "@plane/i18n";
-import type { IUser } from "@plane/types";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { IUser } from "@dragonfruit/types";
 // plane ui
 // hooks
 import { useCurrentTime } from "@/hooks/use-current-time";

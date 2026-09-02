@@ -6,11 +6,11 @@
 
 import { useEffect, useState } from "react";
 import { CircleCheck, XCircle } from "@/components/icons/lucide-shim";
-import { API_BASE_URL } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { Input } from "@plane/ui";
-import { Spinner } from "@plane/propel/spinners";
+import { API_BASE_URL } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { Input } from "@dragonfruit/ui";
+import { Spinner } from "@dragonfruit/propel/spinners";
 // constants
 // helpers
 import { EAuthModes } from "@/helpers/authentication.helper";
@@ -18,7 +18,7 @@ import { EAuthModes } from "@/helpers/authentication.helper";
 import useTimer from "@/hooks/use-timer";
 // services
 import { AuthService } from "@/services/auth.service";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 // services
 const authService = new AuthService();

@@ -8,16 +8,16 @@ import { useEffect, useState, useRef } from "react";
 import { Rocket } from "@/components/icons/lucide-shim";
 import { Combobox } from "@headlessui/react";
 // i18n
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 // types
-import { Button } from "@plane/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 import { SearchIcon, CloseIcon } from "@/components/icons/propel-shim";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { ISearchIssueResponse, TProjectIssuesSearchParams } from "@plane/types";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { ISearchIssueResponse, TProjectIssuesSearchParams } from "@dragonfruit/types";
 // ui
-import { Loader, ToggleSwitch, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-import { generateWorkItemLink, getTabIndex } from "@plane/utils";
+import { Loader, ToggleSwitch, EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
+import { generateWorkItemLink, getTabIndex } from "@dragonfruit/utils";
 // helpers
 // hooks
 import useDebounce from "@/hooks/use-debounce";

@@ -9,13 +9,13 @@ import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
 import { CircleCheck } from "@/components/icons/lucide-shim";
 // plane imports
-import { ORGANIZATION_SIZE, RESTRICTED_URLS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IUser, IWorkspace } from "@plane/types";
-import { Spinner } from "@plane/propel/spinners";
-import { cn, validateWorkspaceName, validateSlug } from "@plane/utils";
+import { ORGANIZATION_SIZE, RESTRICTED_URLS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { IUser, IWorkspace } from "@dragonfruit/types";
+import { Spinner } from "@dragonfruit/propel/spinners";
+import { cn, validateWorkspaceName, validateSlug } from "@dragonfruit/utils";
 // hooks
 import { useInstance } from "@/hooks/store/use-instance";
 import { useWorkspace } from "@/hooks/store/use-workspace";

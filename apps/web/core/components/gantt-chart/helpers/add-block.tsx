@@ -9,10 +9,10 @@ import { addDays } from "date-fns";
 import { observer } from "mobx-react";
 import { PlusIcon } from "@/components/icons/propel-shim";
 // ui
-import { Tooltip } from "@plane/propel/tooltip";
-import type { IBlockUpdateData, IGanttBlock } from "@plane/types";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { IBlockUpdateData, IGanttBlock } from "@dragonfruit/types";
 // helpers
-import { renderFormattedDate, renderFormattedPayloadDate } from "@plane/utils";
+import { renderFormattedDate, renderFormattedPayloadDate } from "@dragonfruit/utils";
 // hooks
 import { usePlatformOS } from "@/hooks/use-platform-os";
 import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";

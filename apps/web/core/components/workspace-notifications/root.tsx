@@ -8,9 +8,9 @@ import { useCallback, useEffect } from "react";
 import { observer } from "mobx-react";
 import useSWR from "swr";
 // plane imports
-import { ENotificationLoader, ENotificationQueryParamType } from "@plane/constants";
-import { EmptyStateCompact } from "@plane/propel/empty-state";
-import { cn } from "@plane/utils";
+import { ENotificationLoader, ENotificationQueryParamType } from "@dragonfruit/constants";
+import { EmptyStateCompact } from "@dragonfruit/propel/empty-state";
+import { cn } from "@dragonfruit/utils";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
 // hooks

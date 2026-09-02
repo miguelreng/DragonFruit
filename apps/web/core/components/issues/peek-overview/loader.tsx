@@ -5,8 +5,8 @@
  */
 
 import { MoveRight } from "@/components/icons/lucide-shim";
-import { Tooltip } from "@plane/propel/tooltip";
-import { Loader } from "@plane/ui";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { Loader } from "@dragonfruit/ui";
 // hooks
 import { usePlatformOS } from "@/hooks/use-platform-os";
 

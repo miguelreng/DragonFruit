@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
+import { EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
 import useKeypress from "@/hooks/use-keypress";
 import { CreateProjectForm } from "@/plane-web/components/projects/create/root";
 import type { TProject } from "@/plane-web/types/projects";

@@ -7,8 +7,8 @@
 import React from "react";
 import { Command } from "cmdk";
 // plane imports
-import { START_OF_THE_WEEK_OPTIONS } from "@plane/constants";
-import type { EStartOfTheWeek } from "@plane/types";
+import { START_OF_THE_WEEK_OPTIONS } from "@dragonfruit/constants";
+import type { EStartOfTheWeek } from "@dragonfruit/types";
 // local imports
 import { PowerKModalCommandItem } from "../../modal/command-item";
 

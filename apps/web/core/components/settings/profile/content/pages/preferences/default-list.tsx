@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 // plane imports
-import { CustomSelect } from "@plane/ui";
+import { CustomSelect } from "@dragonfruit/ui";
 // components
 import { SettingsControlItem } from "@/components/settings/control-item";
 import { ThemeSwitcher } from "@/plane-web/components/preferences/theme-switcher";

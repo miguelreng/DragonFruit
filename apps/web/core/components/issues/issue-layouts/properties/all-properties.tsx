@@ -12,10 +12,10 @@ import { useParams } from "next/navigation";
 // icons
 import { Paperclip } from "@/components/icons/lucide-shim";
 // i18n
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { LinkIcon, StartDatePropertyIcon, ViewsIcon, DueDatePropertyIcon } from "@/components/icons/propel-shim";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TIssue, IIssueDisplayProperties, TIssuePriorities } from "@plane/types";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TIssue, IIssueDisplayProperties, TIssuePriorities } from "@dragonfruit/types";
 // ui
 import {
   cn,
@@ -23,7 +23,7 @@ import {
   renderFormattedPayloadDate,
   generateWorkItemLink,
   shouldHighlightIssueDueDate,
-} from "@plane/utils";
+} from "@dragonfruit/utils";
 // components
 import { CycleDropdown } from "@/components/dropdowns/cycle";
 import { DateDropdown } from "@/components/dropdowns/date";

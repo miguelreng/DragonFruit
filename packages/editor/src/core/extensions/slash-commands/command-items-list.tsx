@@ -34,7 +34,7 @@ import {
   StickyNote,
   Table,
   TextQuote,
-} from "@plane/icons";
+} from "@dragonfruit/icons";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { v4 as generateUuid } from "uuid";
 // constants

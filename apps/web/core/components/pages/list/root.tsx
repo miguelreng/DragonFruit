@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 // types
-import type { TPageNavigationTabs, TPageType } from "@plane/types";
+import type { TPageNavigationTabs, TPageType } from "@dragonfruit/types";
 // components
 import { ListLayout } from "@/components/core/list";
 // plane web hooks

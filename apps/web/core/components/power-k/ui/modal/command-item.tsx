@@ -9,7 +9,7 @@ import { Command } from "cmdk";
 
 import { CheckIcon } from "@/components/icons/propel-shim";
 // plane imports
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // local imports
 import { KeySequenceBadge, ShortcutBadge } from "./command-item-shortcut-badge";
 

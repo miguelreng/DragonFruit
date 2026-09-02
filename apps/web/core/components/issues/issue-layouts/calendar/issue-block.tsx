@@ -9,11 +9,11 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { MoreHorizontal } from "@/components/icons/lucide-shim";
 // plane imports
-import { useOutsideClickDetector } from "@plane/hooks";
-import { Popover } from "@plane/propel/popover";
-import type { TIssue } from "@plane/types";
-import { ControlLink } from "@plane/ui";
-import { cn, generateWorkItemLink } from "@plane/utils";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
+import { Popover } from "@dragonfruit/propel/popover";
+import type { TIssue } from "@dragonfruit/types";
+import { ControlLink } from "@dragonfruit/ui";
+import { cn, generateWorkItemLink } from "@dragonfruit/utils";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useIssues } from "@/hooks/store/use-issues";

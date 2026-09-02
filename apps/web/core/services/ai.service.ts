@@ -5,14 +5,14 @@
  */
 
 // helpers
-import { API_BASE_URL } from "@plane/constants";
+import { API_BASE_URL } from "@dragonfruit/constants";
 // plane web constants
 import type { AI_EDITOR_TASKS } from "@/constants/ai";
 // services
 import { APIService } from "@/services/api.service";
 // types
 // FIXME:
-// import { IGptResponse } from "@plane/types";
+// import { IGptResponse } from "@dragonfruit/types";
 // helpers
 
 export type TTaskPayload = {

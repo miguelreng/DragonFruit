@@ -10,11 +10,11 @@ import Link from "next/link";
 import useSWR from "swr";
 import { Refresh as LoaderIcon } from "@solar-icons/react/ssr";
 // types
-import { Button, getButtonStyling } from "@plane/propel/button";
-import { setPromiseToast } from "@plane/propel/toast";
-import type { TInstanceConfigurationKeys } from "@plane/types";
-import { Loader, ToggleSwitch } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { Button, getButtonStyling } from "@dragonfruit/propel/button";
+import { setPromiseToast } from "@dragonfruit/propel/toast";
+import type { TInstanceConfigurationKeys } from "@dragonfruit/types";
+import { Loader, ToggleSwitch } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 // components
 import { PageWrapper } from "@/components/common/page-wrapper";
 import { WorkspaceListItem } from "@/components/workspace/list-item";

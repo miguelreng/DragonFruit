@@ -14,12 +14,12 @@ import {
   Star,
   StarOff,
 } from "@/components/icons/lucide-shim";
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 // plane imports
 import { LinkIcon, GlobeIcon, LockIcon } from "@/components/icons/propel-shim";
-import { setToast, TOAST_TYPE } from "@plane/propel/toast";
-import { EPageAccess } from "@plane/types";
-import { copyTextToClipboard } from "@plane/utils";
+import { setToast, TOAST_TYPE } from "@dragonfruit/propel/toast";
+import { EPageAccess } from "@dragonfruit/types";
+import { copyTextToClipboard } from "@dragonfruit/utils";
 // components
 import type { TPowerKCommandConfig } from "@/components/power-k/core/types";
 // plane web imports

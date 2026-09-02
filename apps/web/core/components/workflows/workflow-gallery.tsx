@@ -5,8 +5,8 @@
  */
 
 import { Routing } from "@solar-icons/react/ssr";
-import { EmptyStateDetailed } from "@plane/propel/empty-state";
-import { ToggleSwitch } from "@plane/ui";
+import { EmptyStateDetailed } from "@dragonfruit/propel/empty-state";
+import { ToggleSwitch } from "@dragonfruit/ui";
 import type { TWorkflow } from "@/services/workflow.service";
 import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 import { workflowSummary } from "./builder-helpers";

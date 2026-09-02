@@ -8,10 +8,10 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router";
 import { LogOut, MoreHorizontal, Settings, Share2, ArchiveIcon } from "@/components/icons/lucide-shim";
 // plane imports
-import { MEMBER_TRACKER_ELEMENTS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { MEMBER_TRACKER_ELEMENTS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 import { LinkIcon } from "@/components/icons/propel-shim";
-import { CustomMenu } from "@plane/ui";
+import { CustomMenu } from "@dragonfruit/ui";
 
 type Props = {
   workspaceSlug: string;

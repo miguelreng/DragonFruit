@@ -6,16 +6,16 @@
 
 import { useEffect, useState } from "react";
 // plane imports
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 // components
 import { Plus, Trash2, X } from "@/components/icons/lucide-shim";
 // services
 import { ProjectTemplateService } from "@/services/project/project-template.service";
 import type { TProjectTemplate, TProjectTemplateInitialTask } from "@/services/project/project-template.service";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 const projectTemplateService = new ProjectTemplateService();
 

@@ -6,9 +6,9 @@
 
 import { AlertTriangle, CheckCircle2, Clock, XCircle } from "@/components/icons/lucide-shim";
 import { CopyIcon } from "@/components/icons/propel-shim";
-import type { TInboxIssueStatus } from "@plane/types";
-import { EInboxIssueStatus } from "@plane/types";
-import { cn } from "@plane/utils";
+import type { TInboxIssueStatus } from "@dragonfruit/types";
+import { EInboxIssueStatus } from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 
 export const ICON_PROPERTIES = {
   [EInboxIssueStatus.PENDING]: {

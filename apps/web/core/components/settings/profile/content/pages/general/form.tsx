@@ -8,13 +8,13 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { Avatar } from "@plane/ui";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setPromiseToast, setToast } from "@plane/propel/toast";
-import type { IUser, TUserProfile } from "@plane/types";
-import { Input } from "@plane/ui";
-import { getFileURL } from "@plane/utils";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Avatar } from "@dragonfruit/ui";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setPromiseToast, setToast } from "@dragonfruit/propel/toast";
+import type { IUser, TUserProfile } from "@dragonfruit/types";
+import { Input } from "@dragonfruit/ui";
+import { getFileURL } from "@dragonfruit/utils";
 // components
 import { DeactivateAccountModal } from "@/components/account/deactivate-account-modal";
 import { ChangeEmailModal } from "@/components/core/modals/change-email-modal";
@@ -24,7 +24,7 @@ import { SettingsBoxedControlItem } from "@/components/settings/boxed-control-it
 import { useInstance } from "@/hooks/store/use-instance";
 import { useUser, useUserProfile } from "@/hooks/store/user";
 // utils
-import { validatePersonName, validateDisplayName } from "@plane/utils";
+import { validatePersonName, validateDisplayName } from "@dragonfruit/utils";
 
 const buildGeneratedAvatarUrl = (seed: string) =>
   `https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(seed)}`;

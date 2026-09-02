@@ -8,10 +8,10 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TSubIssueOperations } from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
+import { useTranslation } from "@dragonfruit/i18n";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TSubIssueOperations } from "@dragonfruit/types";
+import { EIssuesStoreType } from "@dragonfruit/types";
 // icons
 import { Loader2, Plus } from "@/components/icons/lucide-shim";
 // hooks

@@ -7,16 +7,16 @@
 import type { ReactNode } from "react";
 import { observer } from "mobx-react";
 import { CheckCircle, Clock, MoreVertical } from "@/components/icons/lucide-shim";
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 // plane imports
 import { ArchiveIcon, CheckIcon } from "@/components/icons/propel-shim";
-import type { TNotificationFilter } from "@plane/types";
-import { PopoverMenu } from "@plane/ui";
+import type { TNotificationFilter } from "@dragonfruit/types";
+import { PopoverMenu } from "@dragonfruit/ui";
 // hooks
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
 // local imports
 import { NotificationMenuOptionItem } from "./menu-item";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 export type TPopoverMenuOptions = {
   key: string;

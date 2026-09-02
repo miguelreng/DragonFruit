@@ -7,12 +7,12 @@
 import { observer } from "mobx-react";
 import { AlertOctagon, BarChart4, CircleDashed, Folder, Microscope } from "@/components/icons/lucide-shim";
 // plane imports
-import { MARKETING_PRICING_PAGE_LINK } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { getButtonStyling } from "@plane/propel/button";
+import { MARKETING_PRICING_PAGE_LINK } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { getButtonStyling } from "@dragonfruit/propel/button";
 import { SearchIcon } from "@/components/icons/propel-shim";
-import { ContentWrapper } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { ContentWrapper } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 // assets
 import ctaL1Dark from "@/app/assets/workspace-active-cycles/cta-l-1-dark.webp?url";
 import ctaL1Light from "@/app/assets/workspace-active-cycles/cta-l-1-light.webp?url";

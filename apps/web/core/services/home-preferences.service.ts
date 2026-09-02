@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { API_BASE_URL } from "@plane/constants";
+import { API_BASE_URL } from "@dragonfruit/constants";
 import { APIService } from "@/services/api.service";
 
 export type THomeSectionKey = "inbox" | "my_tasks" | "favorites" | "recent_activity" | "activity" | "agent_cost";

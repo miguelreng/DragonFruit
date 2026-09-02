@@ -8,7 +8,7 @@ import { observer } from "mobx-react";
 // plane package imports
 import { Expand, Shrink } from "@/components/icons/lucide-shim";
 import { CloseIcon } from "@/components/icons/propel-shim";
-import type { ICycle, IModule } from "@plane/types";
+import type { ICycle, IModule } from "@dragonfruit/types";
 // icons
 
 type Props = {

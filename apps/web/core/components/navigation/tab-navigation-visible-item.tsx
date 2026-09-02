@@ -7,10 +7,10 @@
 import { Link } from "react-router";
 import { EyeClosed, Star } from "@solar-icons/react/ssr";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { cn } from "@plane/utils";
-import { ContextMenu } from "@plane/propel/context-menu";
-import { TabNavigationItem } from "@plane/propel/tab-navigation";
+import { useTranslation } from "@dragonfruit/i18n";
+import { cn } from "@dragonfruit/utils";
+import { ContextMenu } from "@dragonfruit/propel/context-menu";
+import { TabNavigationItem } from "@dragonfruit/propel/tab-navigation";
 // local imports
 import type { TNavigationItem } from "./tab-navigation-root";
 import type { TTabPreferences } from "./tab-navigation-utils";

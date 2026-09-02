@@ -5,13 +5,13 @@
  */
 
 // plane imports
-import { API_BASE_URL } from "@plane/constants";
+import { API_BASE_URL } from "@dragonfruit/constants";
 import type {
   IAnalyticsResponse,
   TAnalyticsTabsBase,
   TAnalyticsGraphsBase,
   TAnalyticsFilterParams,
-} from "@plane/types";
+} from "@dragonfruit/types";
 // services
 import { APIService } from "./api.service";
 

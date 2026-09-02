@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { useCallback } from "react";
-import type { IUserLite } from "@plane/types";
+import type { IUserLite } from "@dragonfruit/types";
 import type { LucideIcon } from "@/components/icons/lucide-shim";
 // hooks
 import { useAgent } from "@/hooks/store/use-agent";

@@ -6,9 +6,9 @@
 
 import React from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Button } from "@plane/propel/button";
-import type { TButtonVariant, TButtonSize } from "@plane/propel/button";
-import { IconButton } from "@plane/propel/icon-button";
+import { Button } from "@dragonfruit/propel/button";
+import type { TButtonVariant, TButtonSize } from "@dragonfruit/propel/button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 const meta = {
   title: "Design System/Buttons",
@@ -22,8 +22,8 @@ const meta = {
 The button contract for DragonFruit. Two primitives cover every clickable affordance
 in the product:
 
-- **\`Button\`** (\`@plane/propel/button\`) — anything with a text label.
-- **\`IconButton\`** (\`@plane/propel/icon-button\`) — a bare glyph in a square hit target.
+- **\`Button\`** (\`@dragonfruit/propel/button\`) — anything with a text label.
+- **\`IconButton\`** (\`@dragonfruit/propel/icon-button\`) — a bare glyph in a square hit target.
 
 There is no third option. A hand-rolled \`<button className="...">\` is a bug unless it
 is a genuinely bespoke surface (a canvas node, a grid cell, a calendar day). Everything
@@ -151,10 +151,10 @@ export const WhichComponent: Story = {
       </Section>
 
       <Section title="Import paths">
-        <Snippet>{`import { Button, getButtonStyling } from "@plane/propel/button";
-import { IconButton } from "@plane/propel/icon-button";`}</Snippet>
+        <Snippet>{`import { Button, getButtonStyling } from "@dragonfruit/propel/button";
+import { IconButton } from "@dragonfruit/propel/icon-button";`}</Snippet>
         <p className="mt-3 text-12 text-tertiary">
-          These are the only two button primitives in the monorepo. <code>@plane/ui</code> used to ship a second,
+          These are the only two button primitives in the monorepo. <code>@dragonfruit/ui</code> used to ship a second,
           legacy <code>Button</code> with a different variant vocabulary (<code>neutral-primary</code>,{" "}
           <code>accent-danger</code>, …); it was deleted so there is exactly one implementation and one import path.
           If you find button classes being reproduced by hand anywhere, that is the bug.
@@ -423,7 +423,7 @@ export const LinksAndTriggers: Story = {
         title="When the element can't be a <button>"
         blurb="Navigation needs an <a>. A dropdown trigger is often supplied by a headless library. Both should still look like buttons — that's what getButtonStyling() is for."
       >
-        <Snippet>{`import { getButtonStyling } from "@plane/propel/button";
+        <Snippet>{`import { getButtonStyling } from "@dragonfruit/propel/button";
 
 <Link href={href} className={getButtonStyling("secondary", "lg")}>
   View all docs

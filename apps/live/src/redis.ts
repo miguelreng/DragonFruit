@@ -5,7 +5,7 @@
  */
 
 import Redis from "ioredis";
-import { logger } from "@plane/logger";
+import { logger } from "@dragonfruit/logger";
 import { env } from "./env";
 
 export class RedisManager {

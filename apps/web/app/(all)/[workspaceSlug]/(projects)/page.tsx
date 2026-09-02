@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 // components
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { PageHead } from "@/components/core/page-title";
 import { WorkspaceHomeView } from "@/components/home";
 // hooks

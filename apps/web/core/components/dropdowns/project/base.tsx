@@ -10,11 +10,11 @@ import { observer } from "mobx-react";
 import { usePopper } from "react-popper";
 import { Combobox } from "@headlessui/react";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { Logo } from "@plane/propel/emoji-icon-picker";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Logo } from "@dragonfruit/propel/emoji-icon-picker";
 import { CheckIcon, SearchIcon, ProjectIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
-import { ComboDropDown } from "@plane/ui";
-import { cn, sortBySelectedFirst } from "@plane/utils";
+import { ComboDropDown } from "@dragonfruit/ui";
+import { cn, sortBySelectedFirst } from "@dragonfruit/utils";
 // components
 // hooks
 import { useDropdown } from "@/hooks/use-dropdown";

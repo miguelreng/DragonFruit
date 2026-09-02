@@ -6,15 +6,15 @@
 
 import { observer } from "mobx-react";
 import { ArrowDownWideNarrow, ArrowUpWideNarrow } from "@/components/icons/lucide-shim";
-import { INBOX_ISSUE_ORDER_BY_OPTIONS, INBOX_ISSUE_SORT_BY_OPTIONS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { getButtonStyling } from "@plane/propel/button";
+import { INBOX_ISSUE_ORDER_BY_OPTIONS, INBOX_ISSUE_SORT_BY_OPTIONS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { getButtonStyling } from "@dragonfruit/propel/button";
 import { CheckIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
-import type { TInboxIssueSortingOrderByKeys, TInboxIssueSortingSortByKeys } from "@plane/types";
-import { CustomMenu } from "@plane/ui";
+import type { TInboxIssueSortingOrderByKeys, TInboxIssueSortingSortByKeys } from "@dragonfruit/types";
+import { CustomMenu } from "@dragonfruit/ui";
 // constants
 // helpers
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useProjectInbox } from "@/hooks/store/use-project-inbox";
 import useSize from "@/hooks/use-window-size";

@@ -6,7 +6,7 @@
 
 import React from "react";
 // plane imports
-import type { TIssueServiceType, TWorkItemWidgets } from "@plane/types";
+import type { TIssueServiceType, TWorkItemWidgets } from "@dragonfruit/types";
 // local imports
 import { IssueDetailWidgetActionButtons } from "./action-buttons";
 import { IssueDetailWidgetCollapsibles } from "./issue-detail-widget-collapsibles";

@@ -5,9 +5,9 @@
  */
 
 // plane types
-import { API_BASE_URL } from "@plane/constants";
-import type { TIssueComment, TIssueServiceType } from "@plane/types";
-import { EIssueServiceType } from "@plane/types";
+import { API_BASE_URL } from "@dragonfruit/constants";
+import type { TIssueComment, TIssueServiceType } from "@dragonfruit/types";
+import { EIssueServiceType } from "@dragonfruit/types";
 // services
 import { APIService } from "@/services/api.service";
 import { FileUploadService } from "@/services/file-upload.service";

@@ -5,8 +5,8 @@
  */
 
 import type { Editor } from "@tiptap/core";
-import { AlignCenter, AlignLeft, AlignRight } from "@plane/icons";
-import type { LucideIcon } from "@plane/icons";
+import { AlignCenter, AlignLeft, AlignRight } from "@dragonfruit/icons";
+import type { LucideIcon } from "@dragonfruit/icons";
 // local imports
 import { ECustomImageAttributeNames, ECustomImageStatus } from "./types";
 import type { TCustomImageAlignment, Pixel, TCustomImageAttributes } from "./types";

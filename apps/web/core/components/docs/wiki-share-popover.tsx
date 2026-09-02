@@ -7,16 +7,16 @@
 import { Popover, Transition } from "@headlessui/react";
 import { Fragment, useState } from "react";
 import { usePopper } from "react-popper";
-import { EPageAccess } from "@plane/constants";
-import { Button, getButtonStyling } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TPage } from "@plane/types";
-import { cn, copyUrlToClipboard, getPageName } from "@plane/utils";
+import { EPageAccess } from "@dragonfruit/constants";
+import { Button, getButtonStyling } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TPage } from "@dragonfruit/types";
+import { cn, copyUrlToClipboard, getPageName } from "@dragonfruit/utils";
 import { Copy, ExternalLink, Settings } from "@/components/icons/lucide-shim";
 import { GlobeIcon } from "@/components/icons/propel-shim";
 import { buildPublicPagePath, buildPublicPageUrl, getPublicPageSlug } from "@/helpers/page-public";
 import { ProjectPageService } from "@/services/page/project-page.service";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 const pageService = new ProjectPageService();
 

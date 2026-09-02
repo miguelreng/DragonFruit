@@ -9,10 +9,10 @@ import { observer } from "mobx-react";
 import useSWR from "swr";
 import { EyeIcon, TriangleAlert } from "@/components/icons/lucide-shim";
 // plane imports
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TPageVersion } from "@plane/types";
-import { renderFormattedDate, renderFormattedTime } from "@plane/utils";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TPageVersion } from "@dragonfruit/types";
+import { renderFormattedDate, renderFormattedTime } from "@dragonfruit/utils";
 // helpers
 import type { EPageStoreType } from "@/plane-web/hooks/store";
 // local imports

@@ -7,17 +7,17 @@
 import { observer } from "mobx-react";
 import { CheckCheck, RefreshCw } from "@/components/icons/lucide-shim";
 // plane imports
-import { ENotificationLoader, ENotificationQueryParamType } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { Tooltip } from "@plane/propel/tooltip";
-import { Spinner } from "@plane/propel/spinners";
+import { ENotificationLoader, ENotificationQueryParamType } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { Spinner } from "@dragonfruit/propel/spinners";
 // hooks
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // local imports
 import { NotificationFilter } from "../../filters/menu";
 import { NotificationHeaderMenuOption } from "./menu-option";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 type TNotificationSidebarHeaderOptions = {
   workspaceSlug: string;

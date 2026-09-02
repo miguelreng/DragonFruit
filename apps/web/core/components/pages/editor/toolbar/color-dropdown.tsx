@@ -5,14 +5,14 @@
  */
 
 import { memo } from "react";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 import { ALargeSmall, Ban } from "@/components/icons/lucide-shim";
 import { Popover } from "@headlessui/react";
 // plane editor
-import { COLORS_LIST } from "@plane/editor";
-import type { TEditorCommands } from "@plane/editor";
+import { COLORS_LIST } from "@dragonfruit/editor";
+import type { TEditorCommands } from "@dragonfruit/editor";
 // helpers
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 
 type Props = {
   handleColorSelect: (

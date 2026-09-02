@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { TIssueActivityComment } from "@plane/types";
+import type { TIssueActivityComment } from "@dragonfruit/types";
 
 type TIssueActivityWorklog = {
   workspaceSlug: string;

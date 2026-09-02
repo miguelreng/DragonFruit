@@ -5,8 +5,8 @@
  */
 
 // plane imports
-import type { IModule, TFilterProperty } from "@plane/types";
-import { EQUALITY_OPERATOR, COLLECTION_OPERATOR } from "@plane/types";
+import type { IModule, TFilterProperty } from "@dragonfruit/types";
+import { EQUALITY_OPERATOR, COLLECTION_OPERATOR } from "@dragonfruit/types";
 // local imports
 import type { TCreateFilterConfigParams, IFilterIconConfig, TCreateFilterConfig } from "../../../rich-filters";
 import { createFilterConfig, getMultiSelectConfig, createOperatorConfigEntry } from "../../../rich-filters";

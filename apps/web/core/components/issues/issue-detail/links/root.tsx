@@ -8,9 +8,9 @@ import { useCallback, useMemo, useState } from "react";
 
 import { Plus as PlusIcon } from "@/components/icons/lucide-shim";
 // plane imports
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TIssueLink } from "@plane/types";
-import { EIssueServiceType } from "@plane/types";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TIssueLink } from "@dragonfruit/types";
+import { EIssueServiceType } from "@dragonfruit/types";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 // local imports

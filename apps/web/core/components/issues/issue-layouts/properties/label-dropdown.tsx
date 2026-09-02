@@ -10,17 +10,17 @@ import { useParams } from "next/navigation";
 import { usePopper } from "react-popper";
 import { Combobox } from "@headlessui/react";
 // plane imports
-import { EUserPermissionsLevel, getRandomLabelColor } from "@plane/constants";
-import { useOutsideClickDetector } from "@plane/hooks";
-import { useTranslation } from "@plane/i18n";
+import { EUserPermissionsLevel, getRandomLabelColor } from "@dragonfruit/constants";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
+import { useTranslation } from "@dragonfruit/i18n";
 import { CheckIcon, SearchIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
 // types
-import type { IIssueLabel } from "@plane/types";
-import { EUserProjectRoles } from "@plane/types";
+import type { IIssueLabel } from "@dragonfruit/types";
+import { EUserProjectRoles } from "@dragonfruit/types";
 // components
-import { ComboDropDown } from "@plane/ui";
-import { Spinner } from "@plane/propel/spinners";
-import { sortBySelectedFirst } from "@plane/utils";
+import { ComboDropDown } from "@dragonfruit/ui";
+import { Spinner } from "@dragonfruit/propel/spinners";
+import { sortBySelectedFirst } from "@dragonfruit/utils";
 // hooks
 import { useLabel } from "@/hooks/store/use-label";
 import { useUserPermissions } from "@/hooks/store/user";

@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { getPublicApiBaseUrl } from "@plane/constants";
-import type { TPageType } from "@plane/types";
+import { getPublicApiBaseUrl } from "@dragonfruit/constants";
+import type { TPageType } from "@dragonfruit/types";
 import { APIService } from "@/services/api.service";
 import type { TPublicDocMentions } from "@/helpers/public-doc-mention";
 

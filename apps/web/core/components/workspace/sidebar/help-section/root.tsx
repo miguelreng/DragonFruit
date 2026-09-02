@@ -7,10 +7,10 @@
 import React, { useState } from "react";
 import { observer } from "mobx-react";
 import { GithubIcon, HelpCircle, User } from "@/components/icons/lucide-shim";
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { PageIcon } from "@/components/icons/propel-shim";
 // ui
-import { CustomMenu } from "@plane/ui";
+import { CustomMenu } from "@dragonfruit/ui";
 // components
 import { ProductUpdatesModal } from "@/components/global";
 import { AppSidebarItem } from "@/components/sidebar/sidebar-item";

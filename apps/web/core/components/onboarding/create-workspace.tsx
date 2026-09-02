@@ -8,16 +8,16 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
 // constants
-import { ORGANIZATION_SIZE, RESTRICTED_URLS } from "@plane/constants";
+import { ORGANIZATION_SIZE, RESTRICTED_URLS } from "@dragonfruit/constants";
 // types
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IUser, IWorkspace, TOnboardingSteps } from "@plane/types";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { IUser, IWorkspace, TOnboardingSteps } from "@dragonfruit/types";
 // ui
-import { CustomSelect, Input } from "@plane/ui";
-import { Spinner } from "@plane/propel/spinners";
-import { validateWorkspaceName, validateSlug } from "@plane/utils";
+import { CustomSelect, Input } from "@dragonfruit/ui";
+import { Spinner } from "@dragonfruit/propel/spinners";
+import { validateWorkspaceName, validateSlug } from "@dragonfruit/utils";
 // hooks
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUserProfile, useUserSettings } from "@/hooks/store/user";

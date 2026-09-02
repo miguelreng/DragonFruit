@@ -6,7 +6,7 @@
 
 import React from "react";
 // plane imports
-import { CheckIcon } from "@plane/propel/icons";
+import { CheckIcon } from "@dragonfruit/propel/icons";
 
 type Props = {
   icon?: React.ReactNode;

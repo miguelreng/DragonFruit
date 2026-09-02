@@ -5,7 +5,7 @@
  */
 
 import { Command } from "cmdk";
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { SearchIcon } from "@/components/icons/propel-shim";
 // plane imports
 // components

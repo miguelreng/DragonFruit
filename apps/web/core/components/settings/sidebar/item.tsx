@@ -7,7 +7,7 @@
 import React from "react";
 import Link from "next/link";
 // plane imports
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 
 export type SettingsSidebarIcon = React.ComponentType<React.SVGProps<SVGSVGElement>>;
 export type SettingsSidebarIconPair = {

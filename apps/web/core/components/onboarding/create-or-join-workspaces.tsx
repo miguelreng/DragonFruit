@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { OctagonAlert } from "@/components/icons/lucide-shim";
 // plane imports
-import type { IWorkspaceMemberInvitation, TOnboardingSteps } from "@plane/types";
+import type { IWorkspaceMemberInvitation, TOnboardingSteps } from "@dragonfruit/types";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
 // hooks

@@ -9,12 +9,12 @@ import { useSearchParams } from "next/navigation";
 // icons
 import { Eye, EyeClosed as EyeOff } from "@solar-icons/react/ssr";
 // plane internal packages
-import { API_BASE_URL, E_PASSWORD_STRENGTH } from "@plane/constants";
-import { Button } from "@plane/propel/button";
-import { AuthService } from "@plane/services";
-import { Checkbox, Input, PasswordStrengthIndicator } from "@plane/ui";
-import { Spinner } from "@plane/propel/spinners";
-import { getPasswordStrength, validatePersonName, validateCompanyName } from "@plane/utils";
+import { API_BASE_URL, E_PASSWORD_STRENGTH } from "@dragonfruit/constants";
+import { Button } from "@dragonfruit/propel/button";
+import { AuthService } from "@dragonfruit/services";
+import { Checkbox, Input, PasswordStrengthIndicator } from "@dragonfruit/ui";
+import { Spinner } from "@dragonfruit/propel/spinners";
+import { getPasswordStrength, validatePersonName, validateCompanyName } from "@dragonfruit/utils";
 // components
 import { AuthHeader } from "@/app/(all)/(home)/auth-header";
 import { Banner } from "../common/banner";

@@ -7,8 +7,8 @@
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import useSWR from "swr";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Loader, ToggleSwitch } from "@plane/ui";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Loader, ToggleSwitch } from "@dragonfruit/ui";
 // components
 import { PageWrapper } from "@/components/common/page-wrapper";
 // hooks

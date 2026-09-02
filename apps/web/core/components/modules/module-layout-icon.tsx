@@ -6,8 +6,8 @@
 
 import * as React from "react";
 import { TimelineLayoutIcon, GridLayoutIcon, ListLayoutIcon } from "@/components/icons/propel-shim";
-import type { TModuleLayoutOptions } from "@plane/types";
-import { cn } from "@plane/utils";
+import type { TModuleLayoutOptions } from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 
 interface ILayoutIcon {
   className?: string;

@@ -12,7 +12,7 @@ import type {
   TPageFiltersSortBy,
   TPageFiltersSortKey,
   TPageNavigationTabs,
-} from "@plane/types";
+} from "@dragonfruit/types";
 // local imports
 import { getDate } from "./datetime";
 import { satisfiesDateFilter } from "./filter";

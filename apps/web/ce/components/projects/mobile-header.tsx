@@ -9,10 +9,10 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { ListFilter } from "@/components/icons/lucide-shim";
 // plane imports
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { ChevronDownIcon } from "@/components/icons/propel-shim";
-import type { TProjectFilters } from "@plane/types";
-import { calculateTotalFilters } from "@plane/utils";
+import type { TProjectFilters } from "@dragonfruit/types";
+import { calculateTotalFilters } from "@dragonfruit/utils";
 // components
 import { FiltersDropdown } from "@/components/issues/issue-layouts/filters";
 import { ProjectFiltersSelection } from "@/components/project/dropdowns/filters";

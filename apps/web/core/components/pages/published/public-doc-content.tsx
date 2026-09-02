@@ -5,8 +5,8 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fetchWikipediaSummary } from "@plane/editor";
-import type { TWikipediaSummary } from "@plane/editor";
+import { fetchWikipediaSummary } from "@dragonfruit/editor";
+import type { TWikipediaSummary } from "@dragonfruit/editor";
 import { ListChecks, Whiteboard, StickyNote } from "@/components/icons/lucide-shim";
 import { getPublicDocMentionPresentation, type TPublicDocMentions } from "@/helpers/public-doc-mention";
 import type { TPublicDocEmbed } from "@/services/page/public-page.service";

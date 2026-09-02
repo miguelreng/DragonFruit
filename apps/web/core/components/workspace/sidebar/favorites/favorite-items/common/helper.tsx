@@ -4,11 +4,11 @@
  * See the LICENSE file for details.
  */
 
-import { Logo } from "@plane/propel/emoji-icon-picker";
+import { Logo } from "@dragonfruit/propel/emoji-icon-picker";
 import { PageIcon } from "@/components/icons/propel-shim";
 // plane imports
-import { EIssueLayoutTypes } from "@plane/types";
-import type { IFavorite, TLogoProps } from "@plane/types";
+import { EIssueLayoutTypes } from "@dragonfruit/types";
+import type { IFavorite, TLogoProps } from "@dragonfruit/types";
 // components
 import { IssueLayoutIcon } from "@/components/issues/issue-layouts/layout-icon";
 // plane web constants

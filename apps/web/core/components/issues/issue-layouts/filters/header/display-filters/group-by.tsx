@@ -7,8 +7,8 @@ import { Collapse } from "@/components/common/collapse";
 
 import React, { useState } from "react";
 import { observer } from "mobx-react";
-import { useTranslation } from "@plane/i18n";
-import type { IIssueDisplayFilterOptions, TIssueGroupByOptions } from "@plane/types";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { IIssueDisplayFilterOptions, TIssueGroupByOptions } from "@dragonfruit/types";
 // components
 import { FilterHeader, FilterOption } from "@/components/issues/issue-layouts/filters";
 import { useGroupByOptions } from "@/plane-web/components/issues/issue-layouts/utils";

@@ -8,9 +8,9 @@ import { Collapse } from "@/components/common/collapse";
 import React, { useMemo, useState } from "react";
 import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
-import type { IIssueLabel } from "@plane/types";
+import type { IIssueLabel } from "@dragonfruit/types";
 // components
-import { Loader } from "@plane/ui";
+import { Loader } from "@dragonfruit/ui";
 import { FilterHeader, FilterOption } from "@/components/issues/issue-layouts/filters";
 
 // ui

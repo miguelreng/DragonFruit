@@ -7,11 +7,11 @@
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 // types
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IFormattedInstanceConfiguration, TInstanceEmailConfigurationKeys } from "@plane/types";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { IFormattedInstanceConfiguration, TInstanceEmailConfigurationKeys } from "@dragonfruit/types";
 // ui
-import { CustomSelect } from "@plane/ui";
+import { CustomSelect } from "@dragonfruit/ui";
 // components
 import type { TControllerInputFormField } from "@/components/common/controller-input";
 import { ControllerInput } from "@/components/common/controller-input";

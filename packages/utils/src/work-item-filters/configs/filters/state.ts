@@ -5,9 +5,9 @@
  */
 
 // plane imports
-import { STATE_GROUPS } from "@plane/constants";
-import type { IState, TFilterProperty, TStateGroups, TSupportedOperators } from "@plane/types";
-import { COLLECTION_OPERATOR, EQUALITY_OPERATOR } from "@plane/types";
+import { STATE_GROUPS } from "@dragonfruit/constants";
+import type { IState, TFilterProperty, TStateGroups, TSupportedOperators } from "@dragonfruit/types";
+import { COLLECTION_OPERATOR, EQUALITY_OPERATOR } from "@dragonfruit/types";
 // local imports
 import type { IFilterIconConfig, TCreateFilterConfig, TCreateFilterConfigParams } from "../../../rich-filters";
 import { createFilterConfig, getMultiSelectConfig, createOperatorConfigEntry } from "../../../rich-filters";

@@ -10,12 +10,12 @@ import { useParams } from "next/navigation";
 import { CircleDashed } from "@/components/icons/lucide-shim";
 import { ChevronRightIcon, PlusIcon } from "@/components/icons/propel-shim";
 // types
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TIssue, ISearchIssueResponse, TIssueGroupByOptions } from "@plane/types";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TIssue, ISearchIssueResponse, TIssueGroupByOptions } from "@dragonfruit/types";
 // ui
-import { CustomMenu } from "@plane/ui";
+import { CustomMenu } from "@dragonfruit/ui";
 // components
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 import { ExistingIssuesListModal } from "@/components/core/modals/existing-issues-list-modal";
 import { MultipleSelectGroupAction } from "@/components/core/multiple-select";
 import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";

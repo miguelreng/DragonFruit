@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { PROJECT_SETTINGS_TRACKER_ELEMENTS } from "@plane/constants";
+import { PROJECT_SETTINGS_TRACKER_ELEMENTS } from "@dragonfruit/constants";
 import { TrashIcon } from "@/components/icons/propel-shim";
 
 type TEstimateListItem = {

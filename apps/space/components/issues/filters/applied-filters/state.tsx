@@ -6,8 +6,8 @@
 
 import { observer } from "mobx-react";
 // plane imports
-import { EIconSize } from "@plane/constants";
-import { CloseIcon, StateGroupIcon } from "@plane/propel/icons";
+import { EIconSize } from "@dragonfruit/constants";
+import { CloseIcon, StateGroupIcon } from "@dragonfruit/propel/icons";
 // hooks
 import { useStates } from "@/hooks/store/use-state";
 

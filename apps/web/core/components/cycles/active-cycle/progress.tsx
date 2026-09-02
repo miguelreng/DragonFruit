@@ -6,11 +6,11 @@
 
 import { observer } from "mobx-react";
 // plane imports
-import { PROGRESS_STATE_GROUPS_DETAILS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import type { TWorkItemFilterCondition } from "@plane/shared-state";
-import type { ICycle } from "@plane/types";
-import { LinearProgressIndicator, Loader } from "@plane/ui";
+import { PROGRESS_STATE_GROUPS_DETAILS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { TWorkItemFilterCondition } from "@dragonfruit/shared-state";
+import type { ICycle } from "@dragonfruit/types";
+import { LinearProgressIndicator, Loader } from "@dragonfruit/ui";
 // components
 import { SimpleEmptyState } from "@/components/empty-state/simple-empty-state-root";
 

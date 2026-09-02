@@ -8,13 +8,13 @@ import { useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Star, StarOff, Users } from "@/components/icons/lucide-shim";
 // plane imports
-import { EUserPermissionsLevel } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { EUserPermissionsLevel } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 import { LinkIcon, ModuleStatusIcon } from "@/components/icons/propel-shim";
-import { setToast, TOAST_TYPE } from "@plane/propel/toast";
-import type { IModule, TModuleStatus } from "@plane/types";
-import { EUserPermissions } from "@plane/types";
-import { copyTextToClipboard } from "@plane/utils";
+import { setToast, TOAST_TYPE } from "@dragonfruit/propel/toast";
+import type { IModule, TModuleStatus } from "@dragonfruit/types";
+import { EUserPermissions } from "@dragonfruit/types";
+import { copyTextToClipboard } from "@dragonfruit/utils";
 // components
 import type { TPowerKCommandConfig } from "@/components/power-k/core/types";
 // hooks

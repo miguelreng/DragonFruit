@@ -5,7 +5,7 @@
  */
 
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 import { createPortal } from "react-dom";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
@@ -25,7 +25,7 @@ import { createEventsServicePlugin } from "@schedule-x/events-service";
 import { createCalendarControlsPlugin } from "@schedule-x/calendar-controls";
 import { createCurrentTimePlugin } from "@schedule-x/current-time";
 import { createScrollControllerPlugin } from "@schedule-x/scroll-controller";
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { EUserPermissions, EUserPermissionsLevel } from "@dragonfruit/constants";
 // reason: side-effect CSS import
 // eslint-disable-next-line import/no-unassigned-import
 import "@schedule-x/theme-default/dist/index.css";
@@ -52,10 +52,10 @@ import {
   Trash2,
   Video,
 } from "@/components/icons/lucide-shim";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import { Breadcrumbs, EModalWidth, Header, ModalCore } from "@plane/ui";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { Breadcrumbs, EModalWidth, Header, ModalCore } from "@dragonfruit/ui";
 import { AppHeader } from "@/components/core/app-header";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";

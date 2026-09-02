@@ -8,10 +8,10 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 // services
 // ui
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
 // helpers
-import { renderFormattedPayloadDate } from "@plane/utils";
+import { renderFormattedPayloadDate } from "@dragonfruit/utils";
 import { UserService } from "@/services/user.service";
 
 const userService = new UserService();

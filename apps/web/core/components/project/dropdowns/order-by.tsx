@@ -6,12 +6,12 @@
 
 import { ArrowDownWideNarrow } from "@/components/icons/lucide-shim";
 // plane imports
-import { PROJECT_ORDER_BY_OPTIONS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { getButtonStyling } from "@plane/propel/button";
+import { PROJECT_ORDER_BY_OPTIONS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { getButtonStyling } from "@dragonfruit/propel/button";
 import { CheckIcon } from "@/components/icons/propel-shim";
-import type { TProjectOrderByOptions } from "@plane/types";
-import { CustomMenu } from "@plane/ui";
+import type { TProjectOrderByOptions } from "@dragonfruit/types";
+import { CustomMenu } from "@dragonfruit/ui";
 
 type Props = {
   onChange: (value: TProjectOrderByOptions) => void;

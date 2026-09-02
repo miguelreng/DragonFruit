@@ -5,8 +5,8 @@
  */
 
 // plane imports
-import { ScrollArea } from "@plane/propel/scrollarea";
-import { cn } from "@plane/utils";
+import { ScrollArea } from "@dragonfruit/propel/scrollarea";
+import { cn } from "@dragonfruit/utils";
 // local imports
 import { SettingsSidebarItemCategories } from "./item-categories";
 

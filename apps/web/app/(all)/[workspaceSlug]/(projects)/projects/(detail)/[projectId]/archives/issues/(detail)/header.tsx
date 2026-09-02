@@ -9,7 +9,7 @@ import { useParams } from "next/navigation";
 import useSWR from "swr";
 // ui
 import { ArchiveIcon, WorkItemsIcon } from "@/components/icons/propel-shim";
-import { Breadcrumbs, Header } from "@plane/ui";
+import { Breadcrumbs, Header } from "@dragonfruit/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { IssueDetailQuickActions } from "@/components/issues/issue-detail/issue-detail-quick-actions";

@@ -4,7 +4,7 @@ import {
   HORIZONTAL_STACK_ASSETS,
   VERTICAL_STACK_ASSETS,
   ILLUSTRATION_ASSETS,
-} from "@plane/propel/empty-state";
+} from "@dragonfruit/propel/empty-state";
 import { EmptyStateIcon, EMPTY_STATE_ICON_NAMES } from "./empty-state-icon";
 import { SimpleEmptyState } from "./simple-empty-state-root";
 

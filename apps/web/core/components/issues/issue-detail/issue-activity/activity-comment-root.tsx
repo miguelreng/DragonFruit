@@ -6,9 +6,9 @@
 
 import { observer } from "mobx-react";
 // plane imports
-import type { E_SORT_ORDER, TActivityFilters, EActivityFilterType } from "@plane/constants";
-import { BASE_ACTIVITY_FILTER_TYPES, filterActivityOnSelectedFilters } from "@plane/constants";
-import type { TCommentsOperations } from "@plane/types";
+import type { E_SORT_ORDER, TActivityFilters, EActivityFilterType } from "@dragonfruit/constants";
+import { BASE_ACTIVITY_FILTER_TYPES, filterActivityOnSelectedFilters } from "@dragonfruit/constants";
+import type { TCommentsOperations } from "@dragonfruit/types";
 // components
 import { CommentCard } from "@/components/comments/card/root";
 // hooks

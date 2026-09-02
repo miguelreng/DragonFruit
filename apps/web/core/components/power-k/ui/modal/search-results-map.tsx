@@ -13,8 +13,8 @@ import type {
   IWorkspacePageSearchResult,
   IWorkspaceProjectSearchResult,
   IWorkspaceSearchResult,
-} from "@plane/types";
-import { generateWorkItemLink } from "@plane/utils";
+} from "@dragonfruit/types";
+import { generateWorkItemLink } from "@dragonfruit/utils";
 // components
 import type { TPowerKSearchResultsKeys } from "@/components/power-k/core/types";
 // plane web imports

@@ -6,8 +6,8 @@
 
 import Link from "next/link";
 // plane packages
-import type { TAdminAuthErrorInfo } from "@plane/constants";
-import { SUPPORT_EMAIL, EAdminAuthErrorCodes } from "@plane/constants";
+import type { TAdminAuthErrorInfo } from "@dragonfruit/constants";
+import { SUPPORT_EMAIL, EAdminAuthErrorCodes } from "@dragonfruit/constants";
 
 export enum EErrorAlertType {
   BANNER_ALERT = "BANNER_ALERT",

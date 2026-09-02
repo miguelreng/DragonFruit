@@ -6,10 +6,10 @@
 
 import { Fragment, useState } from "react";
 import { observer } from "mobx-react";
-import { EUserPermissionsLevel } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { EIssuesStoreType, EUserWorkspaceRoles } from "@plane/types";
+import { EUserPermissionsLevel } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { EIssuesStoreType, EUserWorkspaceRoles } from "@dragonfruit/types";
 import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";
 import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 // constants

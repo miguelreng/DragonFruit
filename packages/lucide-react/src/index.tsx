@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as Solar from "@solar-icons/react/ssr";
 
-export * from "@plane/icons";
+export * from "@dragonfruit/icons";
 
 type LucideShimProps = React.ComponentPropsWithoutRef<"svg"> & {
   size?: number | string;

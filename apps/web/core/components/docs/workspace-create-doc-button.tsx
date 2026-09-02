@@ -7,11 +7,11 @@
 import { useRef, useState, type ChangeEvent as ReactChangeEvent } from "react";
 import { observer } from "mobx-react";
 import { useNavigate } from "react-router";
-import { EPageAccess } from "@plane/constants";
-import { Button, getButtonStyling } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TPage, TPageType } from "@plane/types";
-import { CustomMenu } from "@plane/ui";
+import { EPageAccess } from "@dragonfruit/constants";
+import { Button, getButtonStyling } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TPage, TPageType } from "@dragonfruit/types";
+import { CustomMenu } from "@dragonfruit/ui";
 import { ChevronDown, FileText, Folder, UploadCloud } from "@/components/icons/lucide-shim";
 import { ProjectPageService } from "@/services/page/project-page.service";
 import { DocTemplateGalleryModal } from "./doc-template-gallery-modal";

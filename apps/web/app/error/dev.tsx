@@ -6,9 +6,9 @@
 
 // plane imports
 import { isRouteErrorResponse } from "react-router";
-import { Banner } from "@plane/propel/banner";
-import { Button } from "@plane/propel/button";
-import { Card, ECardVariant } from "@plane/propel/card";
+import { Banner } from "@dragonfruit/propel/banner";
+import { Button } from "@dragonfruit/propel/button";
+import { Card, ECardVariant } from "@dragonfruit/propel/card";
 import { InfoFillIcon } from "@/components/icons/propel-shim";
 
 interface ErrorActionsProps {

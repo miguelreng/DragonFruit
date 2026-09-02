@@ -7,9 +7,9 @@
 import { useCallback } from "react";
 import { observer } from "mobx-react";
 // types
-import type { IProjectCustomField, TIssue } from "@plane/types";
+import type { IProjectCustomField, TIssue } from "@dragonfruit/types";
 // ui
-import { CustomSelect } from "@plane/ui";
+import { CustomSelect } from "@dragonfruit/ui";
 
 type Props = {
   customField: IProjectCustomField;

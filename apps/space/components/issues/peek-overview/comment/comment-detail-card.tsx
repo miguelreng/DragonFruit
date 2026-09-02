@@ -10,10 +10,10 @@ import { Controller, useForm } from "react-hook-form";
 import { ChatSquare as MessageSquare, MenuDots as MoreVertical } from "@solar-icons/react/ssr";
 import { Menu, Transition } from "@headlessui/react";
 // plane imports
-import type { EditorRefApi } from "@plane/editor";
-import { CheckIcon, CloseIcon } from "@plane/propel/icons";
-import type { TIssuePublicComment } from "@plane/types";
-import { getFileURL } from "@plane/utils";
+import type { EditorRefApi } from "@dragonfruit/editor";
+import { CheckIcon, CloseIcon } from "@dragonfruit/propel/icons";
+import type { TIssuePublicComment } from "@dragonfruit/types";
+import { getFileURL } from "@dragonfruit/utils";
 // components
 import { LiteTextEditor } from "@/components/editor/lite-text-editor";
 import { CommentReactions } from "@/components/issues/peek-overview/comment/comment-reactions";

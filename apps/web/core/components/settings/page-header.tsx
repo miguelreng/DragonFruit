@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { EHeaderVariant, Header } from "@plane/ui";
+import { EHeaderVariant, Header } from "@dragonfruit/ui";
 
 type Props = {
   leftItem?: React.ReactNode;

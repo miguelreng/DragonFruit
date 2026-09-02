@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 // plane imports
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 // assets
 // components
 import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";

@@ -6,9 +6,9 @@
 
 import { observer } from "mobx-react";
 // icons
-import { DATE_AFTER_FILTER_OPTIONS } from "@plane/constants";
+import { DATE_AFTER_FILTER_OPTIONS } from "@dragonfruit/constants";
 import { CloseIcon } from "@/components/icons/propel-shim";
-import { renderFormattedDate, capitalizeFirstLetter } from "@plane/utils";
+import { renderFormattedDate, capitalizeFirstLetter } from "@dragonfruit/utils";
 // helpers
 // constants
 

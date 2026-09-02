@@ -8,14 +8,14 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import { MoreHorizontal } from "@/components/icons/lucide-shim";
 // types
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { IconButton } from "@plane/propel/icon-button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IProjectView } from "@plane/types";
+import { EUserPermissions, EUserPermissionsLevel } from "@dragonfruit/constants";
+import { IconButton } from "@dragonfruit/propel/icon-button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { IProjectView } from "@dragonfruit/types";
 // ui
-import type { TContextMenuItem } from "@plane/ui";
-import { ContextMenu, CustomMenu } from "@plane/ui";
-import { copyUrlToClipboard, cn } from "@plane/utils";
+import type { TContextMenuItem } from "@dragonfruit/ui";
+import { ContextMenu, CustomMenu } from "@dragonfruit/ui";
+import { copyUrlToClipboard, cn } from "@dragonfruit/utils";
 // helpers
 import { useViewMenuItems } from "@/components/common/quick-actions-helper";
 // hooks

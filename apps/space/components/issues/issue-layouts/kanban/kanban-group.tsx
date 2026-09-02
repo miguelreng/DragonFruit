@@ -15,8 +15,8 @@ import type {
   TIssueGroupByOptions,
   TPaginationData,
   TLoader,
-} from "@plane/types";
-import { cn } from "@plane/utils";
+} from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useIntersectionObserver } from "@/hooks/use-intersection-observer";
 // local imports

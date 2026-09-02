@@ -5,8 +5,8 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { fetchWikipediaSummary, GoogleLogo, searchWikipedia, WikipediaLogo } from "@plane/editor";
-import type { TWikipediaSummary } from "@plane/editor";
+import { fetchWikipediaSummary, GoogleLogo, searchWikipedia, WikipediaLogo } from "@dragonfruit/editor";
+import type { TWikipediaSummary } from "@dragonfruit/editor";
 
 type TExplainCard = {
   query: string;

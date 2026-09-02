@@ -8,10 +8,10 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 // plane imports
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { APITokenService } from "@plane/services";
-import { cn } from "@plane/utils";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { APITokenService } from "@dragonfruit/services";
+import { cn } from "@dragonfruit/utils";
 // components
 import { CreateApiTokenModal } from "@/components/api-token/modal/create-token-modal";
 import { ApiTokenListItem } from "@/components/api-token/token-list-item";
@@ -22,7 +22,7 @@ import { API_TOKENS_LIST } from "@/constants/fetch-keys";
 // local
 import type { Route } from "./+types/page";
 import { MCPWorkspaceSettingsHeader } from "./header";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 const apiTokenService = new APITokenService();
 

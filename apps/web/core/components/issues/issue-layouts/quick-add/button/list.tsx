@@ -6,9 +6,9 @@
 
 import { observer } from "mobx-react";
 
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { PlusIcon } from "@/components/icons/propel-shim";
-import { Row } from "@plane/ui";
+import { Row } from "@dragonfruit/ui";
 import type { TQuickAddIssueButton } from "../root";
 
 export const ListQuickAddIssueButton = observer(function ListQuickAddIssueButton(props: TQuickAddIssueButton) {

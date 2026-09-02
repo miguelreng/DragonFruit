@@ -5,9 +5,9 @@
  */
 
 // plane imports
-import type { TSaveViewOptions, TUpdateViewOptions } from "@plane/constants";
-import type { IWorkItemFilterInstance } from "@plane/shared-state";
-import type { EIssuesStoreType, IIssueFilters, TWorkItemFilterExpression, TWorkItemFilterProperty } from "@plane/types";
+import type { TSaveViewOptions, TUpdateViewOptions } from "@dragonfruit/constants";
+import type { IWorkItemFilterInstance } from "@dragonfruit/shared-state";
+import type { EIssuesStoreType, IIssueFilters, TWorkItemFilterExpression, TWorkItemFilterProperty } from "@dragonfruit/types";
 
 export type TSharedWorkItemFiltersProps = {
   entityType: EIssuesStoreType; // entity type (project, cycle, workspace, teamspace, etc)

@@ -6,10 +6,10 @@
 
 import { useEffect, useRef } from "react";
 // plane imports
-import { Tooltip } from "@plane/propel/tooltip";
-import { cn } from "@plane/propel/utils";
-import type { SingleOrArray, TFilterValue } from "@plane/types";
-import { hasValidValue } from "@plane/utils";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { cn } from "@dragonfruit/propel/utils";
+import type { SingleOrArray, TFilterValue } from "@dragonfruit/types";
+import { hasValidValue } from "@dragonfruit/utils";
 
 interface FilterItemContainerProps {
   children: React.ReactNode;

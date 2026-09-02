@@ -4,10 +4,10 @@
  * See the LICENSE file for details.
  */
 
-import { GOD_MODE_URL } from "@plane/constants";
+import { GOD_MODE_URL } from "@dragonfruit/constants";
 import DefaultLayout from "@/layouts/default-layout";
 import { DragonfruitLockup, DragonfruitLogo } from "@/components/icons/propel-shim";
-import { Button } from "@plane/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 
 export function InstanceNotReady() {
   return (

@@ -8,7 +8,7 @@ import { useMemo, type ReactNode } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
-import { ContentWrapper } from "@plane/ui";
+import { ContentWrapper } from "@dragonfruit/ui";
 // hooks
 import { useHomePreferences } from "@/hooks/use-home-preferences";
 import { useUserProfile } from "@/hooks/store/user";

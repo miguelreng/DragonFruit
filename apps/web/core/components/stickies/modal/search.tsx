@@ -9,13 +9,13 @@ import { debounce } from "lodash-es";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane hooks
-import { useOutsideClickDetector } from "@plane/hooks";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
 // helpers
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { SearchIcon, CloseIcon } from "@/components/icons/propel-shim";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 import { useSticky } from "@/hooks/use-stickies";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 export const StickySearch = observer(function StickySearch() {
   // router

@@ -6,8 +6,8 @@
 
 import type { Control } from "react-hook-form";
 import { Controller } from "react-hook-form";
-import type { IWebhook } from "@plane/types";
-import { Checkbox } from "@plane/ui";
+import type { IWebhook } from "@dragonfruit/types";
+import { Checkbox } from "@dragonfruit/ui";
 
 export const INDIVIDUAL_WEBHOOK_OPTIONS: {
   key: keyof IWebhook;

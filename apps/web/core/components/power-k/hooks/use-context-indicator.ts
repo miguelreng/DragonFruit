@@ -6,7 +6,7 @@
 
 import { useParams } from "next/navigation";
 // plane imports
-import { getPageName } from "@plane/utils";
+import { getPageName } from "@dragonfruit/utils";
 // hooks
 import { useCycle } from "@/hooks/store/use-cycle";
 import { useModule } from "@/hooks/store/use-module";

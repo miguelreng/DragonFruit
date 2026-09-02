@@ -7,13 +7,13 @@
 import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import type { LucideIcon } from "@/components/icons/lucide-shim";
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { ChevronDownIcon } from "@/components/icons/propel-shim";
 // plane imports
-import type { IUserLite } from "@plane/types";
-import { ComboDropDown } from "@plane/ui";
+import type { IUserLite } from "@dragonfruit/types";
+import { ComboDropDown } from "@dragonfruit/ui";
 // helpers
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useDropdown } from "@/hooks/use-dropdown";
 // local imports

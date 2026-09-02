@@ -11,11 +11,11 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Hotel } from "@/components/icons/lucide-shim";
 // plane ui
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { useLocalStorage } from "@plane/hooks";
-import { useTranslation } from "@plane/i18n";
+import { EUserPermissions, EUserPermissionsLevel } from "@dragonfruit/constants";
+import { useLocalStorage } from "@dragonfruit/hooks";
+import { useTranslation } from "@dragonfruit/i18n";
 import { MembersPropertyIcon, CheckIcon, ProjectIcon, CloseIcon } from "@/components/icons/propel-shim";
-import { cn, getFileURL } from "@plane/utils";
+import { cn, getFileURL } from "@dragonfruit/utils";
 // hooks
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useProject } from "@/hooks/store/use-project";

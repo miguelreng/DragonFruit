@@ -7,11 +7,11 @@
 import React, { useEffect, useState } from "react";
 import { CheckCircle as CircleCheck, CloseCircle as XCircle } from "@solar-icons/react/ssr";
 // plane imports
-import { API_BASE_URL } from "@plane/constants";
-import { Button } from "@plane/propel/button";
-import { AuthService } from "@plane/services";
-import { Input } from "@plane/ui";
-import { Spinner } from "@plane/propel/spinners";
+import { API_BASE_URL } from "@dragonfruit/constants";
+import { Button } from "@dragonfruit/propel/button";
+import { AuthService } from "@dragonfruit/services";
+import { Input } from "@dragonfruit/ui";
+import { Spinner } from "@dragonfruit/propel/spinners";
 // hooks
 import useTimer from "@/hooks/use-timer";
 // types

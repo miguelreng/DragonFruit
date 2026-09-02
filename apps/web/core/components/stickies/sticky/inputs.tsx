@@ -8,9 +8,9 @@ import { useCallback, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 // plane imports
-import type { EditorRefApi } from "@plane/editor";
-import type { TSticky } from "@plane/types";
-import { cn, isCommentEmpty } from "@plane/utils";
+import type { EditorRefApi } from "@dragonfruit/editor";
+import type { TSticky } from "@dragonfruit/types";
+import { cn, isCommentEmpty } from "@dragonfruit/utils";
 import { StickyEditor } from "@/components/editor/sticky-editor";
 import type { TStickyTargetSnapshot } from "@/components/stickies/create-from-sticky";
 import { useWorkspace } from "@/hooks/store/use-workspace";

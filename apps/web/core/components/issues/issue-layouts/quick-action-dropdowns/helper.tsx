@@ -7,12 +7,12 @@
 import { useMemo } from "react";
 import { XCircle, ArchiveRestoreIcon } from "@/components/icons/lucide-shim";
 // plane imports
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { LinkIcon, CopyIcon, NewTabIcon, EditIcon, ArchiveIcon, TrashIcon } from "@/components/icons/propel-shim";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { EIssuesStoreType, TIssue } from "@plane/types";
-import type { TContextMenuItem } from "@plane/ui";
-import { copyUrlToClipboard, generateWorkItemLink } from "@plane/utils";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { EIssuesStoreType, TIssue } from "@dragonfruit/types";
+import type { TContextMenuItem } from "@dragonfruit/ui";
+import { copyUrlToClipboard, generateWorkItemLink } from "@dragonfruit/utils";
 // types
 import { createCopyMenuWithDuplication } from "@/plane-web/components/issues/issue-layouts/quick-action-dropdowns";
 

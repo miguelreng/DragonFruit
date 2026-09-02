@@ -7,9 +7,9 @@
 import { observer } from "mobx-react";
 import Link from "next/link";
 // plane imports
-import { PROJECT_TRACKER_ELEMENTS } from "@plane/constants";
-import { Button, getButtonStyling } from "@plane/propel/button";
-import { cn } from "@plane/utils";
+import { PROJECT_TRACKER_ELEMENTS } from "@dragonfruit/constants";
+import { Button, getButtonStyling } from "@dragonfruit/propel/button";
+import { cn } from "@dragonfruit/utils";
 // components
 import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 // hooks

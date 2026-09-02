@@ -7,10 +7,10 @@
 import { observer } from "mobx-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 // ui
-import { SITES_ISSUE_LAYOUTS } from "@plane/constants";
+import { SITES_ISSUE_LAYOUTS } from "@dragonfruit/constants";
 // plane i18n
-import { useTranslation } from "@plane/i18n";
-import { Tooltip } from "@plane/propel/tooltip";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 // helpers
 import { queryParamGenerator } from "@/helpers/query-param-generator";
 // hooks

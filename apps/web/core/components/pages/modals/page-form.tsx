@@ -9,15 +9,15 @@ import { useState } from "react";
 import type { LucideIcon } from "@/components/icons/lucide-shim";
 
 // plane imports
-import { ETabIndices, EPageAccess } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { EmojiPicker, EmojiIconPickerTypes, Logo } from "@plane/propel/emoji-icon-picker";
+import { ETabIndices, EPageAccess } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { EmojiPicker, EmojiIconPickerTypes, Logo } from "@dragonfruit/propel/emoji-icon-picker";
 import { GlobeIcon, LockIcon, PageIcon } from "@/components/icons/propel-shim";
 import type { ISvgIcons } from "@/components/icons/propel-shim";
-import type { TPage, TPageTemplate } from "@plane/types";
-import { CustomMenu, Input } from "@plane/ui";
-import { getTabIndex } from "@plane/utils";
+import type { TPage, TPageTemplate } from "@dragonfruit/types";
+import { CustomMenu, Input } from "@dragonfruit/ui";
+import { getTabIndex } from "@dragonfruit/utils";
 // components
 import { AccessField } from "@/components/common/access-field";
 import { ChevronDown } from "@/components/icons/lucide-shim";

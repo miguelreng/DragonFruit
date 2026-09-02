@@ -4,9 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import { API_BASE_URL } from "@plane/constants";
-import type { TIssueActivity, TIssueServiceType } from "@plane/types";
-import { EIssueServiceType } from "@plane/types";
+import { API_BASE_URL } from "@dragonfruit/constants";
+import type { TIssueActivity, TIssueServiceType } from "@dragonfruit/types";
+import { EIssueServiceType } from "@dragonfruit/types";
 import { APIService } from "@/services/api.service";
 // types
 // helper

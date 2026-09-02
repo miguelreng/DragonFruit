@@ -6,12 +6,12 @@
 
 import { observer } from "mobx-react";
 import { Expand, Shrink } from "@/components/icons/lucide-shim";
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 // plane
-import type { TGanttViews } from "@plane/types";
-import { Row } from "@plane/ui";
+import type { TGanttViews } from "@dragonfruit/types";
+import { Row } from "@dragonfruit/ui";
 // components
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 import { VIEWS_LIST } from "@/components/gantt-chart/data";
 // helpers
 // hooks

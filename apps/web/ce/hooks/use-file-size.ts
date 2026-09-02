@@ -5,7 +5,7 @@
  */
 
 // plane imports
-import { MAX_FILE_SIZE } from "@plane/constants";
+import { MAX_FILE_SIZE } from "@dragonfruit/constants";
 // hooks
 import { useInstance } from "@/hooks/store/use-instance";
 

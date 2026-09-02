@@ -9,10 +9,10 @@ import type { ReactNode } from "react";
 import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IState, TBaseIssue, TIssue } from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
-import { cn, renderFormattedPayloadDate } from "@plane/utils";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { IState, TBaseIssue, TIssue } from "@dragonfruit/types";
+import { EIssuesStoreType } from "@dragonfruit/types";
+import { cn, renderFormattedPayloadDate } from "@dragonfruit/utils";
 import { Collapse } from "@/components/common/collapse";
 import {
   buildForest,

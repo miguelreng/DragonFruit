@@ -11,7 +11,7 @@ import type {
   TProjectBookmarkBulkImportResult,
   TProjectBookmarkComment,
   TProjectBookmarkCreatePayload,
-} from "@plane/types";
+} from "@dragonfruit/types";
 import { BookmarkService, type TBookmarkQueryParams, type TBookmarkUrlMetadata } from "@/services/bookmark.service";
 
 export interface IBookmarkStore {

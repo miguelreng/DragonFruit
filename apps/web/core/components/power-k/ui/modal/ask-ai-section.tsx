@@ -6,7 +6,7 @@
 import { useState, useCallback, useRef } from "react";
 import { Command } from "cmdk";
 import { FileText, Loader2, Paperclip, Sparkles, X } from "@/components/icons/lucide-shim";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 import {
   AGENT_CHAT_ACCEPTED_FILE_TYPES,
   AGENT_CHAT_MAX_FILE_BYTES,
@@ -16,7 +16,7 @@ import {
   type TPendingAgentChatFile,
 } from "@/helpers/agent-chat-attachments";
 import { AgentChatService } from "@/services/agent-chat.service";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 type Props = {
   workspaceSlug: string | undefined;

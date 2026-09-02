@@ -8,7 +8,7 @@ import type { Extensions } from "@tiptap/core";
 import type { MutableRefObject } from "react";
 import { forwardRef, useMemo } from "react";
 // plane imports
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // components
 import { PageRenderer } from "@/components/editors";
 // constants

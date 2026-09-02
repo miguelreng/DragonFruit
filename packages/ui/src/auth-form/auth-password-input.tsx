@@ -5,8 +5,8 @@
  */
 
 import React, { useState } from "react";
-import type { E_PASSWORD_STRENGTH } from "@plane/constants";
-import { cn, getPasswordStrength } from "@plane/utils";
+import type { E_PASSWORD_STRENGTH } from "@dragonfruit/constants";
+import { cn, getPasswordStrength } from "@dragonfruit/utils";
 import { PasswordStrengthIndicator } from "../form-fields/password/indicator";
 import { AuthInput } from "./auth-input";
 

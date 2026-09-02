@@ -9,10 +9,10 @@ import { observer } from "mobx-react";
 import { useTheme } from "next-themes";
 import useSWR from "swr";
 // plane internal packages
-import { setPromiseToast, setToast, TOAST_TYPE } from "@plane/propel/toast";
-import type { TInstanceConfigurationKeys, TInstanceAuthenticationModes } from "@plane/types";
-import { Loader, ToggleSwitch } from "@plane/ui";
-import { cn, resolveGeneralTheme } from "@plane/utils";
+import { setPromiseToast, setToast, TOAST_TYPE } from "@dragonfruit/propel/toast";
+import type { TInstanceConfigurationKeys, TInstanceAuthenticationModes } from "@dragonfruit/types";
+import { Loader, ToggleSwitch } from "@dragonfruit/ui";
+import { cn, resolveGeneralTheme } from "@dragonfruit/utils";
 // components
 import { PageWrapper } from "@/components/common/page-wrapper";
 import { AuthenticationMethodCard } from "@/components/authentication/authentication-method-card";

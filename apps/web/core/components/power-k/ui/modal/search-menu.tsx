@@ -7,8 +7,8 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 // plane imports
-import { WORKSPACE_DEFAULT_SEARCH_RESULT } from "@plane/constants";
-import type { IWorkspaceSearchResults } from "@plane/types";
+import { WORKSPACE_DEFAULT_SEARCH_RESULT } from "@dragonfruit/constants";
+import type { IWorkspaceSearchResults } from "@dragonfruit/types";
 // hooks
 import { usePowerK } from "@/hooks/store/use-power-k";
 import useDebounce from "@/hooks/use-debounce";

@@ -8,10 +8,10 @@ import { useCallback } from "react";
 import { observer } from "mobx-react";
 import useSWR from "swr";
 
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
 import { PlusIcon } from "@/components/icons/propel-shim";
-import type { THomeWidgetProps } from "@plane/types";
+import type { THomeWidgetProps } from "@dragonfruit/types";
 import { useHome } from "@/hooks/store/use-home";
 import { LinkCreateUpdateModal } from "./create-update-link-modal";
 import { ProjectLinkList } from "./links";

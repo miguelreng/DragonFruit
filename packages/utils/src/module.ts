@@ -6,7 +6,7 @@
 
 import { sortBy } from "lodash-es";
 // plane imports
-import type { IModule, TModuleDisplayFilters, TModuleFilters, TModuleOrderByOptions } from "@plane/types";
+import type { IModule, TModuleDisplayFilters, TModuleFilters, TModuleOrderByOptions } from "@dragonfruit/types";
 // local imports
 import { getDate } from "./datetime";
 import { satisfiesDateFilter } from "./filter";

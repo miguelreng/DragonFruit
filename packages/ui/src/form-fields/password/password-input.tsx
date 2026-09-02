@@ -6,8 +6,8 @@
 
 import { Eye, EyeClosed } from "@solar-icons/react/ssr";
 import { useState } from "react";
-import { Tooltip } from "@plane/propel/tooltip";
-import { cn } from "@plane/utils";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { cn } from "@dragonfruit/utils";
 
 type TPasswordInputProps = {
   id: string;

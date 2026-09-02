@@ -11,7 +11,7 @@ import type {
   TFilterGroupNode,
   TFilterProperty,
   TFilterValue,
-} from "@plane/types";
+} from "@dragonfruit/types";
 // local imports
 import { createAndGroupNode } from "../../factories/nodes/core";
 import { getGroupChildren } from "../../types";

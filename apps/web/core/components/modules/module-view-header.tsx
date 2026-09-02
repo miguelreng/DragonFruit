@@ -9,15 +9,15 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { ListFilter } from "@/components/icons/lucide-shim";
 // plane helpers
-import { MODULE_VIEW_LAYOUTS } from "@plane/constants";
-import { useOutsideClickDetector } from "@plane/hooks";
+import { MODULE_VIEW_LAYOUTS } from "@dragonfruit/constants";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
 // types
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { SearchIcon, CloseIcon } from "@/components/icons/propel-shim";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TModuleFilters } from "@plane/types";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TModuleFilters } from "@dragonfruit/types";
 // ui
-import { cn, calculateTotalFilters } from "@plane/utils";
+import { cn, calculateTotalFilters } from "@dragonfruit/utils";
 // plane utils
 // components
 import { FiltersDropdown } from "@/components/issues/issue-layouts/filters";
@@ -29,7 +29,7 @@ import { useMember } from "@/hooks/store/use-member";
 import { useModuleFilter } from "@/hooks/store/use-module-filter";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 import { ModuleLayoutIcon } from "./module-layout-icon";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 // i18n
 
 export const ModuleViewHeader = observer(function ModuleViewHeader() {

@@ -9,11 +9,11 @@ import { observer } from "mobx-react";
 import { usePathname } from "next/navigation";
 // DragonFruit imports
 import useSWR from "swr";
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { TOAST_TYPE, setPromiseToast, setToast } from "@plane/propel/toast";
-import type { IWorkItemPeekOverview, TIssue } from "@plane/types";
-import { EIssueServiceType, EIssuesStoreType } from "@plane/types";
+import { EUserPermissions, EUserPermissionsLevel } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { TOAST_TYPE, setPromiseToast, setToast } from "@dragonfruit/propel/toast";
+import type { IWorkItemPeekOverview, TIssue } from "@dragonfruit/types";
+import { EIssueServiceType, EIssuesStoreType } from "@dragonfruit/types";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useIssues } from "@/hooks/store/use-issues";

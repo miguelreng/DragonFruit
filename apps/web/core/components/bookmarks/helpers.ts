@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TProjectBookmark } from "@plane/types";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TProjectBookmark } from "@dragonfruit/types";
 
 export const normalizeTags = (tags: string) =>
   tags

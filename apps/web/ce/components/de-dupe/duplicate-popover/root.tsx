@@ -7,7 +7,7 @@
 import React from "react";
 import { observer } from "mobx-react";
 // types
-import type { TDeDupeIssue } from "@plane/types";
+import type { TDeDupeIssue } from "@dragonfruit/types";
 import type { TIssueOperations } from "@/components/issues/issue-detail";
 
 type TDeDupeIssuePopoverRootProps = {

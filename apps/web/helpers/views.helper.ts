@@ -5,11 +5,11 @@
  */
 
 import type { LucideIcon } from "@/components/icons/lucide-shim";
-import { VIEW_ACCESS_SPECIFIERS as VIEW_ACCESS_SPECIFIERS_CONSTANTS } from "@plane/constants";
+import { VIEW_ACCESS_SPECIFIERS as VIEW_ACCESS_SPECIFIERS_CONSTANTS } from "@dragonfruit/constants";
 import { GlobeIcon, LockIcon } from "@/components/icons/propel-shim";
 
 import type { ISvgIcons } from "@/components/icons/propel-shim";
-import { EViewAccess } from "@plane/types";
+import { EViewAccess } from "@dragonfruit/types";
 
 const VIEW_ACCESS_ICONS = {
   [EViewAccess.PUBLIC]: GlobeIcon,

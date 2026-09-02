@@ -11,9 +11,9 @@ import { useParams, usePathname, useSearchParams } from "next/navigation";
 import { Info } from "@/components/icons/lucide-shim";
 import { CheckIcon } from "@/components/icons/propel-shim";
 // ui
-import { CircularProgressIndicator } from "@plane/ui";
+import { CircularProgressIndicator } from "@dragonfruit/ui";
 // components
-import { generateQueryParams } from "@plane/utils";
+import { generateQueryParams } from "@dragonfruit/utils";
 import { ListItem } from "@/components/core/list";
 import { ModuleListItemAction, ModuleQuickActions } from "@/components/modules";
 // helpers

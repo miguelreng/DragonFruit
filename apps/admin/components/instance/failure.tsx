@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import { useTheme } from "next-themes";
-import { Button } from "@plane/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 // assets
 import { AuthHeader } from "@/app/(all)/(home)/auth-header";
 import InstanceFailureDarkImage from "@/app/assets/instance/instance-failure-dark.svg?url";

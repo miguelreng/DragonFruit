@@ -7,11 +7,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { EPageAccess } from "@plane/constants";
-import { useOutsideClickDetector } from "@plane/hooks";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { copyTextToClipboard } from "@plane/utils";
+import { EPageAccess } from "@dragonfruit/constants";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { copyTextToClipboard } from "@dragonfruit/utils";
 import {
   buildPublicPagePath,
   buildPublicPageUrl,

@@ -7,9 +7,9 @@
 import type { Control } from "react-hook-form";
 import { Controller } from "react-hook-form";
 // constants
-import type { IWebhook } from "@plane/types";
+import type { IWebhook } from "@dragonfruit/types";
 // ui
-import { ToggleSwitch } from "@plane/ui";
+import { ToggleSwitch } from "@dragonfruit/ui";
 
 interface IWebHookToggle {
   control: Control<IWebhook, any>;

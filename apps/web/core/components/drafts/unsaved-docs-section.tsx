@@ -8,10 +8,10 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { X } from "@/components/icons/lucide-shim";
 import { PageIcon } from "@/components/icons/propel-shim";
-import { cn, renderFormattedDate } from "@plane/utils";
+import { cn, renderFormattedDate } from "@dragonfruit/utils";
 import { clearPageUnsynced, listUnsyncedPages, type TUnsyncedPageEntry } from "@/helpers/unsynced-pages";
 import { useProject } from "@/hooks/store/use-project";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 type Props = {
   workspaceSlug: string;

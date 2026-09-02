@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { CollaborativeDocumentEditorWithRef } from "@plane/editor";
+import { CollaborativeDocumentEditorWithRef } from "@dragonfruit/editor";
 import type {
   CollaborationState,
   EditorRefApi,
@@ -17,13 +17,13 @@ import type {
   TFileHandler,
   TRealtimeConfig,
   TServerHandler,
-} from "@plane/editor";
-import { useTranslation } from "@plane/i18n";
-import { IconButton } from "@plane/propel/icon-button";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TSearchEntityRequestPayload, TSearchResponse, TWebhookConnectionQueryParams } from "@plane/types";
-import { ERowVariant, Row } from "@plane/ui";
-import { cn, generateRandomColor, getFileURL, hslToHex } from "@plane/utils";
+} from "@dragonfruit/editor";
+import { useTranslation } from "@dragonfruit/i18n";
+import { IconButton } from "@dragonfruit/propel/icon-button";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TSearchEntityRequestPayload, TSearchResponse, TWebhookConnectionQueryParams } from "@dragonfruit/types";
+import { ERowVariant, Row } from "@dragonfruit/ui";
+import { cn, generateRandomColor, getFileURL, hslToHex } from "@dragonfruit/utils";
 import { Minimize2 } from "@/components/icons/lucide-shim";
 // components
 import {

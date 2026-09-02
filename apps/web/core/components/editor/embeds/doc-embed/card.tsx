@@ -15,9 +15,9 @@ import {
   Whiteboard,
   StickyNote,
 } from "@/components/icons/lucide-shim";
-import type { IProjectView, TPage, TSticky } from "@plane/types";
-import { EViewAccess } from "@plane/types";
-import { cn } from "@plane/utils";
+import type { IProjectView, TPage, TSticky } from "@dragonfruit/types";
+import { EViewAccess } from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 import { STICKY_COLORS_LIST } from "@/components/editor/sticky-editor/color-palette";
 import { ProjectPageService } from "@/services/page";
 import { StickyService } from "@/services/sticky.service";

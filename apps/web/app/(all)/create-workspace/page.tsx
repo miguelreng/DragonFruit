@@ -8,10 +8,10 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { Button, getButtonStyling } from "@plane/propel/button";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button, getButtonStyling } from "@dragonfruit/propel/button";
 import { DragonfruitLogo } from "@/components/icons/propel-shim";
-import type { IWorkspace } from "@plane/types";
+import type { IWorkspace } from "@dragonfruit/types";
 // components
 import { CreateWorkspaceForm } from "@/components/workspace/create-workspace-form";
 import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";

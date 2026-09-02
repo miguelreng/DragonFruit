@@ -7,8 +7,8 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 // DragonFruit imports
-import type { IWebhook } from "@plane/types";
-import { ToggleSwitch } from "@plane/ui";
+import type { IWebhook } from "@dragonfruit/types";
+import { ToggleSwitch } from "@dragonfruit/ui";
 // hooks
 import { useWebhook } from "@/hooks/store/use-webhook";
 

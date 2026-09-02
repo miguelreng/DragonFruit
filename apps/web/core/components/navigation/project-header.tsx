@@ -8,8 +8,8 @@ import { useCallback, useMemo } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { ProjectIcon } from "@/components/icons/propel-shim";
-import type { ICustomSearchSelectOption } from "@plane/types";
-import { CustomSearchSelect } from "@plane/ui";
+import type { ICustomSearchSelectOption } from "@dragonfruit/types";
+import { CustomSearchSelect } from "@dragonfruit/ui";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";

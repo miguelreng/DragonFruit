@@ -5,8 +5,8 @@
  */
 
 import { useCallback, useState } from "react";
-import { setToast, TOAST_TYPE } from "@plane/propel/toast";
-import { copyUrlToClipboard } from "@plane/utils";
+import { setToast, TOAST_TYPE } from "@dragonfruit/propel/toast";
+import { copyUrlToClipboard } from "@dragonfruit/utils";
 import type { TNavigationItem } from "@/components/navigation/tab-navigation-root";
 
 type UseProjectActionsProps = {

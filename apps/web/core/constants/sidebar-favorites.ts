@@ -9,7 +9,7 @@ import type { LucideIcon } from "@/components/icons/lucide-shim";
 // plane imports
 import type { ISvgIcons } from "@/components/icons/propel-shim";
 import { CycleIcon, LayersIcon, ModuleIcon, PageIcon, ProjectIcon, ViewsIcon } from "@/components/icons/propel-shim";
-import type { IFavorite } from "@plane/types";
+import type { IFavorite } from "@dragonfruit/types";
 
 export const FAVORITE_ITEM_ICONS: Record<string, React.FC<ISvgIcons> | LucideIcon> = {
   page: PageIcon,

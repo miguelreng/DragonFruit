@@ -7,8 +7,8 @@
 import React from "react";
 import { observer } from "mobx-react";
 // types
-import type { TIssue } from "@plane/types";
-import { cn } from "@plane/utils";
+import type { TIssue } from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 // components
 import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
 

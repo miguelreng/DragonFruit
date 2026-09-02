@@ -9,8 +9,8 @@ import { useRef } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { CommentReplyIcon } from "@/components/icons/propel-shim";
-import type { TIssueComment } from "@plane/types";
-import { cn } from "@plane/utils";
+import type { TIssueComment } from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 // hooks
 
 type TCommentBlock = {

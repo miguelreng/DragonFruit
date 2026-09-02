@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 import { POWER_K_SCOPE_CHIPS, type TPowerKScope } from "../../core/scope";
 
 type Props = {

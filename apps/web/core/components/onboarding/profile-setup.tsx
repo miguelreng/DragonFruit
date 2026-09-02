@@ -8,17 +8,17 @@ import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
 import { Eye, EyeOff } from "@/components/icons/lucide-shim";
-import { E_PASSWORD_STRENGTH } from "@plane/constants";
+import { E_PASSWORD_STRENGTH } from "@dragonfruit/constants";
 // types
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IUser, TUserProfile, TOnboardingSteps } from "@plane/types";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { IUser, TUserProfile, TOnboardingSteps } from "@dragonfruit/types";
 // ui
-import { Input, PasswordStrengthIndicator } from "@plane/ui";
-import { Spinner } from "@plane/propel/spinners";
+import { Input, PasswordStrengthIndicator } from "@dragonfruit/ui";
+import { Spinner } from "@dragonfruit/propel/spinners";
 // components
-import { cn, getFileURL, getPasswordStrength, validatePersonName } from "@plane/utils";
+import { cn, getFileURL, getPasswordStrength, validatePersonName } from "@dragonfruit/utils";
 import { UserImageUploadModal } from "@/components/core/modals/user-image-upload-modal";
 // hooks
 import { useUser, useUserProfile } from "@/hooks/store/user";

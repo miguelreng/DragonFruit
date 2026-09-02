@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { EPageAccess } from "@plane/types";
+import { EPageAccess } from "@dragonfruit/types";
 
 export type TStickyTarget = "doc" | "task";
 

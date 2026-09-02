@@ -15,12 +15,12 @@ import {
   MoveRight,
 } from "@/components/icons/lucide-shim";
 // constants
-import { EIssueFilterType, SPREADSHEET_PROPERTY_DETAILS } from "@plane/constants";
+import { EIssueFilterType, SPREADSHEET_PROPERTY_DETAILS } from "@dragonfruit/constants";
 // i18n
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 // types
-import type { IIssueDisplayFilterOptions, IIssueDisplayProperties, TIssueOrderByOptions } from "@plane/types";
-import { CustomMenu, Row } from "@plane/ui";
+import type { IIssueDisplayFilterOptions, IIssueDisplayProperties, TIssueOrderByOptions } from "@dragonfruit/types";
+import { CustomMenu, Row } from "@dragonfruit/ui";
 // hooks
 import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 import { useIssuesActions } from "@/hooks/use-issues-actions";

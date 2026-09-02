@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import type { TPageVersion } from "@plane/types";
-import { cn } from "@plane/utils";
+import type { TPageVersion } from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 
 import {
   cellId,

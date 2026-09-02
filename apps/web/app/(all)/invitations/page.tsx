@@ -11,14 +11,14 @@ import Link from "next/link";
 import useSWR, { mutate } from "swr";
 import { CheckCircle2 } from "@/components/icons/lucide-shim";
 // plane imports
-import { ROLE } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { ROLE } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 // types
-import { Button } from "@plane/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 import { DragonfruitLogo } from "@/components/icons/propel-shim";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IWorkspaceMemberInvitation } from "@plane/types";
-import { truncateText } from "@plane/utils";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { IWorkspaceMemberInvitation } from "@dragonfruit/types";
+import { truncateText } from "@dragonfruit/utils";
 // assets
 // components
 import { EmptyState } from "@/components/common/empty-state";

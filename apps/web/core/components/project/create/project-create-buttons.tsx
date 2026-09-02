@@ -5,11 +5,11 @@
  */
 
 import { useFormContext } from "react-hook-form";
-import { ETabIndices } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import type { IProject } from "@plane/types";
-import { getTabIndex } from "@plane/utils";
+import { ETabIndices } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import type { IProject } from "@dragonfruit/types";
+import { getTabIndex } from "@dragonfruit/utils";
 
 type Props = {
   handleClose: () => void;

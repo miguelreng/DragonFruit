@@ -6,10 +6,10 @@
 
 import { observer } from "mobx-react";
 // plane imports
-import { ENotificationFilterType, FILTER_TYPE_OPTIONS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { ENotificationFilterType, FILTER_TYPE_OPTIONS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 import { CloseIcon } from "@/components/icons/propel-shim";
-import { Header, EHeaderVariant, Tag } from "@plane/ui";
+import { Header, EHeaderVariant, Tag } from "@dragonfruit/ui";
 // hooks
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
 

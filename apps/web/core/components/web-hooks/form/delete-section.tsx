@@ -5,8 +5,8 @@
  */
 
 import { Disclosure, Transition } from "@headlessui/react";
-import { WORKSPACE_SETTINGS_TRACKER_ELEMENTS } from "@plane/constants";
-import { Button } from "@plane/propel/button";
+import { WORKSPACE_SETTINGS_TRACKER_ELEMENTS } from "@dragonfruit/constants";
+import { Button } from "@dragonfruit/propel/button";
 import { ChevronDownIcon, ChevronUpIcon } from "@/components/icons/propel-shim";
 
 type Props = {

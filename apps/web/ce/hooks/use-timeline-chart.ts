@@ -5,8 +5,8 @@
  */
 
 // types
-import type { TTimelineTypeCore } from "@plane/types";
-import { GANTT_TIMELINE_TYPE } from "@plane/types";
+import type { TTimelineTypeCore } from "@dragonfruit/types";
+import { GANTT_TIMELINE_TYPE } from "@dragonfruit/types";
 // DragonFruit-web
 
 import type { IBaseTimelineStore } from "@/plane-web/store/timeline/base-timeline.store";

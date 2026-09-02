@@ -9,13 +9,13 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import type { SubmitHandler } from "react-hook-form";
 import { Controller, useForm } from "react-hook-form";
-import { useOutsideClickDetector } from "@plane/hooks";
-import { useTranslation } from "@plane/i18n";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
+import { useTranslation } from "@dragonfruit/i18n";
 // plane helpers
 // plane ui
 import { FavoriteFolderIcon } from "@/components/icons/propel-shim";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Input } from "@plane/ui";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Input } from "@dragonfruit/ui";
 // hooks
 import { useFavorite } from "@/hooks/store/use-favorite";
 

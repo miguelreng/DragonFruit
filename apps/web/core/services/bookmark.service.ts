@@ -4,13 +4,13 @@
  * See the LICENSE file for details.
  */
 
-import { API_BASE_URL } from "@plane/constants";
+import { API_BASE_URL } from "@dragonfruit/constants";
 import type {
   TProjectBookmark,
   TProjectBookmarkBulkImportResult,
   TProjectBookmarkComment,
   TProjectBookmarkCreatePayload,
-} from "@plane/types";
+} from "@dragonfruit/types";
 import { APIService } from "@/services/api.service";
 
 export type TBookmarkQueryParams = {

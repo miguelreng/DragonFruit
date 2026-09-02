@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { API_BASE_URL } from "@plane/constants";
+import { API_BASE_URL } from "@dragonfruit/constants";
 import type {
   IAIConnector,
   IAIConnectorCreatePayload,
@@ -12,7 +12,7 @@ import type {
   IAIConnectorIngestMessage,
   IAIConnectorIngestResult,
   IAIConnectorUpdatePayload,
-} from "@plane/types";
+} from "@dragonfruit/types";
 import { APIService } from "../api.service";
 
 export class AIConnectorService extends APIService {

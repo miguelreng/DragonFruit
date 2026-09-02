@@ -6,8 +6,8 @@
 
 import { observer } from "mobx-react";
 // plane types
-import type { IPartialProject } from "@plane/types";
-import { Spinner } from "@plane/propel/spinners";
+import type { IPartialProject } from "@dragonfruit/types";
+import { Spinner } from "@dragonfruit/propel/spinners";
 // components
 import { PowerKProjectsMenu } from "@/components/power-k/menus/projects";
 // hooks

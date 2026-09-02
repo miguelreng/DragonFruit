@@ -8,8 +8,8 @@ import { useEffect } from "react";
 import { observer } from "mobx-react";
 import { Layers } from "@/components/icons/lucide-shim";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { cn } from "@plane/utils";
+import { useTranslation } from "@dragonfruit/i18n";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useModule } from "@/hooks/store/use-module";
 

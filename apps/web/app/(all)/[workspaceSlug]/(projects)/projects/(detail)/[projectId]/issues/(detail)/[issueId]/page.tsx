@@ -5,7 +5,7 @@
  */
 
 import { redirect } from "react-router";
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 // assets
 // components
 import { AppLoadingScreen } from "@/components/common/app-loading-screen";

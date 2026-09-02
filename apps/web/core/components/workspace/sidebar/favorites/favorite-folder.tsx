@@ -22,14 +22,14 @@ import { createRoot } from "react-dom/client";
 import { Star, MoreHorizontal, GripVertical } from "@/components/icons/lucide-shim";
 import { Disclosure, Transition } from "@headlessui/react";
 // plane imports
-import { useOutsideClickDetector } from "@plane/hooks";
-import { useTranslation } from "@plane/i18n";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
+import { useTranslation } from "@dragonfruit/i18n";
 import { DraftIcon, FavoriteFolderIcon, ChevronRightIcon } from "@/components/icons/propel-shim";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { IFavorite, InstructionType } from "@plane/types";
-import { CustomMenu, DropIndicator, DragHandle } from "@plane/ui";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { IFavorite, InstructionType } from "@dragonfruit/types";
+import { CustomMenu, DropIndicator, DragHandle } from "@dragonfruit/ui";
 // helpers
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useFavorite } from "@/hooks/store/use-favorite";
 import { usePlatformOS } from "@/hooks/use-platform-os";

@@ -1,5 +1,5 @@
-import { EUserPermissions } from "@plane/constants";
-import type { TPageType } from "@plane/types";
+import { EUserPermissions } from "@dragonfruit/constants";
+import type { TPageType } from "@dragonfruit/types";
 
 export const getWorkspaceDocFavoritePresentation = (pageType?: TPageType) => {
   const resolvedPageType = pageType ?? "doc";

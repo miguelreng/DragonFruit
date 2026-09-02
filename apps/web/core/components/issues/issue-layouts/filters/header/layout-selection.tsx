@@ -5,11 +5,11 @@
  */
 
 // plane imports
-import { ISSUE_LAYOUTS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { Tooltip } from "@plane/propel/tooltip";
-import { EIssueLayoutTypes } from "@plane/types";
-import { cn } from "@plane/utils";
+import { ISSUE_LAYOUTS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { EIssueLayoutTypes } from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 // components
 import { IssueLayoutIcon } from "@/components/issues/issue-layouts/layout-icon";
 // hooks

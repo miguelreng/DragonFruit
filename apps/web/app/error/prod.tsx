@@ -5,7 +5,7 @@
  */
 
 // plane imports
-import { Button } from "@plane/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 // components
 import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 // layouts

@@ -7,7 +7,7 @@
 import React from "react";
 import { AlertCircle } from "@/components/icons/lucide-shim";
 // ui
-import { Button } from "@plane/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 import { TransferIcon } from "@/components/icons/propel-shim";
 
 type Props = {

@@ -19,13 +19,13 @@ import {
   Users,
 } from "@/components/icons/lucide-shim";
 // plane imports
-import { EUserPermissionsLevel } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { EUserPermissionsLevel } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 import { LinkIcon, TrashIcon, ContrastIcon, DiceIcon, DoubleCircleIcon } from "@/components/icons/propel-shim";
-import { setToast, TOAST_TYPE } from "@plane/propel/toast";
-import type { ICycle, IIssueLabel, IModule, TIssue, TIssuePriorities } from "@plane/types";
-import { EIssueServiceType, EUserPermissions } from "@plane/types";
-import { copyTextToClipboard } from "@plane/utils";
+import { setToast, TOAST_TYPE } from "@dragonfruit/propel/toast";
+import type { ICycle, IIssueLabel, IModule, TIssue, TIssuePriorities } from "@dragonfruit/types";
+import { EIssueServiceType, EUserPermissions } from "@dragonfruit/types";
+import { copyTextToClipboard } from "@dragonfruit/utils";
 // components
 import type { TPowerKCommandConfig } from "@/components/power-k/core/types";
 // hooks

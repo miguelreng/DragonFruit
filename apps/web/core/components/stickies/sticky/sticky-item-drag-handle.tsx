@@ -6,7 +6,7 @@
 
 import { forwardRef } from "react";
 // helper
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 
 type Props = {
   isDragging?: boolean;

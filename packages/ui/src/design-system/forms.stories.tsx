@@ -6,7 +6,7 @@
 
 import React from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Button } from "@plane/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 import { Checkbox, Input, TextArea } from "../form-fields";
 import { ToggleSwitch } from "../toggle-switch";
 
@@ -164,7 +164,7 @@ export const Selects: Story = {
     <Page>
       <Section
         title="Cuál de los tres"
-        blurb="Los tres viven en @plane/ui y se eligen por cuántas opciones hay, no por gusto."
+        blurb="Los tres viven en @dragonfruit/ui y se eligen por cuántas opciones hay, no por gusto."
       >
         <div className="space-y-2 text-13">
           {[
@@ -179,7 +179,7 @@ export const Selects: Story = {
             </div>
           ))}
         </div>
-        <Snippet>{`import { CustomSelect, CustomSearchSelect, CustomMenu } from "@plane/ui";
+        <Snippet>{`import { CustomSelect, CustomSearchSelect, CustomMenu } from "@dragonfruit/ui";
 
 <CustomSelect value={priority} onChange={setPriority} label={label}>
   {options.map((o) => (

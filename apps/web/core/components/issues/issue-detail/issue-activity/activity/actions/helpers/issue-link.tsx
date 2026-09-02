@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { Tooltip } from "@plane/propel/tooltip";
-import { generateWorkItemLink } from "@plane/utils";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { generateWorkItemLink } from "@dragonfruit/utils";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { usePlatformOS } from "@/hooks/use-platform-os";

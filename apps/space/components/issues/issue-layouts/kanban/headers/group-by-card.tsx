@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import { Record as Circle } from "@solar-icons/react/ssr";
 // types
-import type { TIssueGroupByOptions } from "@plane/types";
+import type { TIssueGroupByOptions } from "@dragonfruit/types";
 
 interface IHeaderGroupByCard {
   groupBy: TIssueGroupByOptions | undefined;

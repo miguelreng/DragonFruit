@@ -5,8 +5,8 @@
  */
 
 // plane imports
-import { getPublicApiBaseUrl } from "@plane/constants";
-import type { IState } from "@plane/types";
+import { getPublicApiBaseUrl } from "@dragonfruit/constants";
+import type { IState } from "@dragonfruit/types";
 // api service
 import { APIService } from "../api.service";
 

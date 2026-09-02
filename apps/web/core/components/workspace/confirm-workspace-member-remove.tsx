@@ -8,9 +8,9 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import { AlertTriangle } from "@/components/icons/lucide-shim";
 // ui
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
 // hooks
 import { useUser } from "@/hooks/store/user";
 

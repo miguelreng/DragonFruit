@@ -5,16 +5,16 @@
  */
 
 import React, { useEffect, useRef, useState } from "react";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 import type { LucideIcon } from "@/components/icons/lucide-shim";
 import { CornerDownRight, RefreshCcw, Sparkles, TriangleAlert } from "@/components/icons/lucide-shim";
 // plane editor
-import type { EditorRefApi } from "@plane/editor";
+import type { EditorRefApi } from "@dragonfruit/editor";
 import { ChevronRightIcon } from "@/components/icons/propel-shim";
 // plane ui
-import { Tooltip } from "@plane/propel/tooltip";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 // components
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 import { RichTextEditor } from "@/components/editor/rich-text";
 // plane web constants
 import { AI_EDITOR_TASKS, LOADING_TEXTS } from "@/constants/ai";

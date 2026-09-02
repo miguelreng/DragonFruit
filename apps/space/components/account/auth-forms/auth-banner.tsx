@@ -5,7 +5,7 @@
  */
 
 import { InfoCircle as Info } from "@solar-icons/react/ssr";
-import { CloseIcon } from "@plane/propel/icons";
+import { CloseIcon } from "@dragonfruit/propel/icons";
 // helpers
 import type { TAuthErrorInfo } from "@/helpers/authentication.helper";
 

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { CORE_EXTENSIONS } from "@plane/editor";
+import { CORE_EXTENSIONS } from "@dragonfruit/editor";
 import type { TTranscriptToDocResponse } from "@/services/ai.service";
 
 type PMNode = { type: string; attrs?: Record<string, unknown>; content?: PMNode[]; text?: string };

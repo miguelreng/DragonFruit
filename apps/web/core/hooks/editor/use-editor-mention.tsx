@@ -7,13 +7,13 @@
 import { useCallback } from "react";
 import { useParams } from "next/navigation";
 // plane editor
-import type { TMentionSection, TMentionSuggestion } from "@plane/editor";
+import type { TMentionSection, TMentionSuggestion } from "@dragonfruit/editor";
 // plane types
-import type { TSearchEntityRequestPayload, TSearchResponse, TUserSearchResponse } from "@plane/types";
+import type { TSearchEntityRequestPayload, TSearchResponse, TUserSearchResponse } from "@dragonfruit/types";
 // plane ui
-import { Avatar } from "@plane/ui";
+import { Avatar } from "@dragonfruit/ui";
 // helpers
-import { getFileURL } from "@plane/utils";
+import { getFileURL } from "@dragonfruit/utils";
 // hooks
 import { useAgent } from "@/hooks/store/use-agent";
 // plane web hooks

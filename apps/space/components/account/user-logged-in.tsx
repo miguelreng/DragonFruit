@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { DragonfruitLockup } from "@plane/propel/icons";
+import { DragonfruitLockup } from "@dragonfruit/propel/icons";
 // assets
 import UserLoggedInImage from "@/app/assets/user-logged-in.svg?url";
 // components

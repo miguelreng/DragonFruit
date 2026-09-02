@@ -7,7 +7,7 @@
 import { useEffect, useMemo } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { Loader } from "@plane/ui";
+import { Loader } from "@dragonfruit/ui";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";

@@ -6,7 +6,7 @@
 
 import { useContext } from "react";
 // plane imports
-import type { IWorkItemFilterStore } from "@plane/shared-state";
+import type { IWorkItemFilterStore } from "@dragonfruit/shared-state";
 // context
 import { StoreContext } from "@/lib/store-context";
 

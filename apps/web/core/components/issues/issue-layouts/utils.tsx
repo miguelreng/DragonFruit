@@ -9,8 +9,8 @@ import { extractInstruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/tre
 import { clone, isNil, pull, uniq, concat } from "lodash-es";
 import scrollIntoView from "smooth-scroll-into-view-if-needed";
 // plane types
-import { EIconSize, ISSUE_PRIORITIES, STATE_GROUPS } from "@plane/constants";
-import { Logo } from "@plane/propel/emoji-icon-picker";
+import { EIconSize, ISSUE_PRIORITIES, STATE_GROUPS } from "@dragonfruit/constants";
+import { Logo } from "@dragonfruit/propel/emoji-icon-picker";
 import type { ISvgIcons } from "@/components/icons/propel-shim";
 import { CycleGroupIcon, CycleIcon, ModuleIcon, PriorityIcon, StateGroupIcon } from "@/components/icons/propel-shim";
 import type {
@@ -27,11 +27,11 @@ import type {
   IIssueDisplayFilterOptions,
   TGetColumns,
   TStateGroups,
-} from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
+} from "@dragonfruit/types";
+import { EIssuesStoreType } from "@dragonfruit/types";
 // plane ui
-import { Avatar } from "@plane/ui";
-import { renderFormattedDate, getFileURL } from "@plane/utils";
+import { Avatar } from "@dragonfruit/ui";
+import { renderFormattedDate, getFileURL } from "@dragonfruit/utils";
 // helpers
 // store
 import { store } from "@/lib/store-context";

@@ -7,11 +7,11 @@
 import { useMemo } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { TOAST_TYPE, setPromiseToast, setToast } from "@plane/propel/toast";
-import type { TIssue } from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
+import { EUserPermissions, EUserPermissionsLevel } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { TOAST_TYPE, setPromiseToast, setToast } from "@dragonfruit/propel/toast";
+import type { TIssue } from "@dragonfruit/types";
+import { EIssuesStoreType } from "@dragonfruit/types";
 // assets
 // components
 import { EmptyState } from "@/components/common/empty-state";

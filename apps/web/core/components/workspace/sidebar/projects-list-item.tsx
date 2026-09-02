@@ -17,16 +17,16 @@ import scrollIntoView from "smooth-scroll-into-view-if-needed";
 import { Briefcase, Copy, FileText, Settings, Share2, LogOut, MoreHorizontal } from "@/components/icons/lucide-shim";
 import { Disclosure, Transition } from "@headlessui/react";
 // plane imports
-import { EUserPermissions, EUserPermissionsLevel, MEMBER_TRACKER_ELEMENTS } from "@plane/constants";
-import { useOutsideClickDetector } from "@plane/hooks";
-import { useTranslation } from "@plane/i18n";
-import { Logo } from "@plane/propel/emoji-icon-picker";
+import { EUserPermissions, EUserPermissionsLevel, MEMBER_TRACKER_ELEMENTS } from "@dragonfruit/constants";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Logo } from "@dragonfruit/propel/emoji-icon-picker";
 import { LinkIcon, ArchiveIcon, ChevronRightIcon } from "@/components/icons/propel-shim";
-import { IconButton, getIconButtonStyling } from "@plane/propel/icon-button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import { CustomMenu, DropIndicator, DragHandle, ControlLink } from "@plane/ui";
-import { cn, copyTextToClipboard } from "@plane/utils";
+import { IconButton, getIconButtonStyling } from "@dragonfruit/propel/icon-button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { CustomMenu, DropIndicator, DragHandle, ControlLink } from "@dragonfruit/ui";
+import { cn, copyTextToClipboard } from "@dragonfruit/utils";
 // components
 import { DEFAULT_TAB_KEY, getTabUrl } from "@/components/navigation/tab-navigation-utils";
 import { useTabPreferences } from "@/components/navigation/use-tab-preferences";

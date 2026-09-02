@@ -9,9 +9,9 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { ListFilter } from "@/components/icons/lucide-shim";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import type { TProjectFilters } from "@plane/types";
-import { cn, calculateTotalFilters } from "@plane/utils";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { TProjectFilters } from "@dragonfruit/types";
+import { cn, calculateTotalFilters } from "@dragonfruit/utils";
 // components
 import { FiltersDropdown } from "@/components/issues/issue-layouts/filters";
 // hooks

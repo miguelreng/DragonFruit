@@ -5,7 +5,7 @@
  */
 
 import { MoveRight } from "@/components/icons/lucide-shim";
-import { Tooltip } from "@plane/propel/tooltip";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 // assets
 // components
 import { EmptyState } from "@/components/common/empty-state";

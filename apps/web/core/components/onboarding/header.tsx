@@ -7,10 +7,10 @@
 import { observer } from "mobx-react";
 // plane imports
 import { DragonfruitLockup, ChevronLeftIcon } from "@/components/icons/propel-shim";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TOnboardingStep } from "@plane/types";
-import { EOnboardingSteps } from "@plane/types";
-import { cn } from "@plane/utils";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TOnboardingStep } from "@dragonfruit/types";
+import { EOnboardingSteps } from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useInstance } from "@/hooks/store/use-instance";
 import { useUser } from "@/hooks/store/user";

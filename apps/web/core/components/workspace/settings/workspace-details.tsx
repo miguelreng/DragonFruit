@@ -8,16 +8,16 @@ import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
 // DragonFruit Imports
-import { ORGANIZATION_SIZE, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
+import { ORGANIZATION_SIZE, EUserPermissions, EUserPermissionsLevel } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
 import { EditIcon } from "@/components/icons/propel-shim";
-import { Tooltip } from "@plane/propel/tooltip";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 import { Copy, RefreshCw } from "@/components/icons/lucide-shim";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IWorkspace } from "@plane/types";
-import { CustomSelect, Input } from "@plane/ui";
-import { cn, copyTextToClipboard, copyUrlToClipboard, validateSlug, validateWorkspaceName } from "@plane/utils";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { IWorkspace } from "@dragonfruit/types";
+import { CustomSelect, Input } from "@dragonfruit/ui";
+import { cn, copyTextToClipboard, copyUrlToClipboard, validateSlug, validateWorkspaceName } from "@dragonfruit/utils";
 // components
 import { WorkspaceImageUploadModal } from "@/components/core/modals/workspace-image-upload-modal";
 import { TimezoneSelect } from "@/components/global/timezone-select";
@@ -32,7 +32,7 @@ import { useUserPermissions } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
 // plane web components
 import { DeleteWorkspaceSection } from "@/plane-web/components/workspace/delete-workspace-section";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 const defaultValues: Partial<IWorkspace> = {
   name: "",

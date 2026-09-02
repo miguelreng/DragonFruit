@@ -7,9 +7,9 @@
 import { useMemo, useCallback } from "react";
 import { CalendarDays, FileText, Whiteboard, Star } from "@/components/icons/lucide-shim";
 // plane imports
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { EUserPermissions, EUserPermissionsLevel } from "@dragonfruit/constants";
 import { IntakeIcon, PageIcon, StickyNoteIcon, WorkItemsIcon } from "@/components/icons/propel-shim";
-import type { EUserProjectRoles, IPartialProject } from "@plane/types";
+import type { EUserProjectRoles, IPartialProject } from "@dragonfruit/types";
 import type { TNavigationItem } from "@/components/navigation/tab-navigation-root";
 
 type UseNavigationItemsProps = {

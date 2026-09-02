@@ -31,9 +31,9 @@ import {
   Underline,
 } from "@/components/icons/lucide-shim";
 // plane imports
-import type { TCommandExtraProps, TEditorCommands, TEditorFontStyle } from "@plane/editor";
+import type { TCommandExtraProps, TEditorCommands, TEditorFontStyle } from "@dragonfruit/editor";
 import { MonospaceIcon, SansSerifIcon, SerifIcon } from "@/components/icons/propel-shim";
-import { convertRemToPixel } from "@plane/utils";
+import { convertRemToPixel } from "@dragonfruit/utils";
 
 type TEditorTypes = "lite" | "document" | "sticky";
 

@@ -9,8 +9,8 @@ import { isEmpty } from "lodash-es";
 import { observer } from "mobx-react";
 import { SlidersHorizontal } from "@/components/icons/lucide-shim";
 // plane imports
-import type { IIssueDisplayFilterOptions, ILayoutDisplayFiltersOptions, IIssueDisplayProperties } from "@plane/types";
-import { cn } from "@plane/utils";
+import type { IIssueDisplayFilterOptions, ILayoutDisplayFiltersOptions, IIssueDisplayProperties } from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 // components
 import {
   FilterDisplayProperties,

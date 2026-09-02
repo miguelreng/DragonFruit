@@ -8,7 +8,7 @@ import React from "react";
 import { observer } from "mobx-react";
 import { Plus as PlusIcon } from "@/components/icons/lucide-shim";
 // plane imports
-import type { TIssueServiceType } from "@plane/types";
+import type { TIssueServiceType } from "@dragonfruit/types";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 

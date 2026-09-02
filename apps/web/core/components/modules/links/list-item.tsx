@@ -6,14 +6,14 @@
 
 import { observer } from "mobx-react";
 
-import { MODULE_TRACKER_ELEMENTS } from "@plane/constants";
+import { MODULE_TRACKER_ELEMENTS } from "@dragonfruit/constants";
 import { CopyIcon, EditIcon, TrashIcon } from "@/components/icons/propel-shim";
 // plane types
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { ILinkDetails } from "@plane/types";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { ILinkDetails } from "@dragonfruit/types";
 // plane ui
-import { getIconForLink, copyTextToClipboard, calculateTimeAgo } from "@plane/utils";
+import { getIconForLink, copyTextToClipboard, calculateTimeAgo } from "@dragonfruit/utils";
 // helpers
 //
 // hooks

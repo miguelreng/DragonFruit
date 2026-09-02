@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { TInstanceAuthenticationModes } from "@plane/types";
+import type { TInstanceAuthenticationModes } from "@dragonfruit/types";
 import { getCoreAuthenticationModesMap } from "./core";
 import type { TGetAuthenticationModeProps } from "./types";
 

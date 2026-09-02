@@ -8,11 +8,11 @@ import React from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { Ban } from "@/components/icons/lucide-shim";
-import { EUserProjectRoles } from "@plane/types";
+import { EUserProjectRoles } from "@dragonfruit/types";
 // plane ui
-import { Avatar, CustomSearchSelect } from "@plane/ui";
+import { Avatar, CustomSearchSelect } from "@dragonfruit/ui";
 // helpers
-import { getFileURL } from "@plane/utils";
+import { getFileURL } from "@dragonfruit/utils";
 // hooks
 import { useMember } from "@/hooks/store/use-member";
 

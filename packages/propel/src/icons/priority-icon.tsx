@@ -6,7 +6,7 @@
 
 import * as React from "react";
 import { ArrowDown, ArrowRight, ArrowUp, DangerTriangle } from "@solar-icons/react/ssr";
-import { Minus } from "@plane/icons";
+import { Minus } from "@dragonfruit/icons";
 import { cn } from "../utils";
 
 export type TIssuePriorities = "urgent" | "high" | "medium" | "low" | "none";

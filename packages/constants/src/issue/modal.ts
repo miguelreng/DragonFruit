@@ -5,7 +5,7 @@
  */
 
 // plane imports
-import type { TIssue } from "@plane/types";
+import type { TIssue } from "@dragonfruit/types";
 
 export const DEFAULT_WORK_ITEM_FORM_VALUES: Partial<TIssue> = {
   project_id: "",

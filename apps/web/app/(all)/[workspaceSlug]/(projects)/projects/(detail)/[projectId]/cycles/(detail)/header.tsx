@@ -16,17 +16,17 @@ import {
   EUserPermissionsLevel,
   ISSUE_DISPLAY_FILTERS_BY_PAGE,
   WORK_ITEM_TRACKER_ELEMENTS,
-} from "@plane/constants";
-import { usePlatformOS } from "@plane/hooks";
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { IconButton } from "@plane/propel/icon-button";
+} from "@dragonfruit/constants";
+import { usePlatformOS } from "@dragonfruit/hooks";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 import { CycleIcon } from "@/components/icons/propel-shim";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { ICustomSearchSelectOption, IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@plane/types";
-import { EIssuesStoreType, EIssueLayoutTypes } from "@plane/types";
-import { Breadcrumbs, BreadcrumbNavigationSearchDropdown, Header } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { ICustomSearchSelectOption, IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@dragonfruit/types";
+import { EIssuesStoreType, EIssueLayoutTypes } from "@dragonfruit/types";
+import { Breadcrumbs, BreadcrumbNavigationSearchDropdown, Header } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 // components
 import { WorkItemsModal } from "@/components/analytics/work-items/modal";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";

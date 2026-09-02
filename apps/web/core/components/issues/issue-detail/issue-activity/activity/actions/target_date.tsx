@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import { CalendarDays } from "@/components/icons/lucide-shim";
 // hooks
-import { renderFormattedDate } from "@plane/utils";
+import { renderFormattedDate } from "@dragonfruit/utils";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 // components
 import { IssueActivityBlockComponent, IssueLink } from "./";

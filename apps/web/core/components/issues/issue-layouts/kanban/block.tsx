@@ -12,15 +12,15 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane helpers
 import { MoreHorizontal } from "@/components/icons/lucide-shim";
-import { useOutsideClickDetector } from "@plane/hooks";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
 // types
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TIssue, IIssueDisplayProperties, IIssueMap } from "@plane/types";
-import { EIssueServiceType } from "@plane/types";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TIssue, IIssueDisplayProperties, IIssueMap } from "@dragonfruit/types";
+import { EIssueServiceType } from "@dragonfruit/types";
 // ui
-import { ControlLink, DropIndicator } from "@plane/ui";
-import { cn, generateWorkItemLink } from "@plane/utils";
+import { ControlLink, DropIndicator } from "@dragonfruit/ui";
+import { cn, generateWorkItemLink } from "@dragonfruit/utils";
 // components
 import RenderIfVisible from "@/components/core/render-if-visible-HOC";
 import { HIGHLIGHT_CLASS, getIssueBlockId } from "@/components/issues/issue-layouts/utils";

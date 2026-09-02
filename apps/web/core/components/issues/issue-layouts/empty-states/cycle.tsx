@@ -8,10 +8,10 @@ import { isEmpty } from "lodash-es";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
-import { EUserPermissionsLevel } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { EmptyStateDetailed } from "@plane/propel/empty-state";
-import { EIssuesStoreType, EUserProjectRoles } from "@plane/types";
+import { EUserPermissionsLevel } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { EmptyStateDetailed } from "@dragonfruit/propel/empty-state";
+import { EIssuesStoreType, EUserProjectRoles } from "@dragonfruit/types";
 // components
 import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 import { useCycle } from "@/hooks/store/use-cycle";

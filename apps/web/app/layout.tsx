@@ -10,10 +10,10 @@ import Script from "next/script";
 // oxlint-disable-next-line no-unassigned-import
 import "@/styles/globals.css";
 
-import { SITE_DESCRIPTION, SITE_NAME } from "@plane/constants";
+import { SITE_DESCRIPTION, SITE_NAME } from "@dragonfruit/constants";
 
 // helpers
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 
 // assets
 import favicon16 from "@/app/assets/favicon/favicon-16x16.png?url";

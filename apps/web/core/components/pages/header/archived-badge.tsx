@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 // plane imports
 import { ArchiveIcon } from "@/components/icons/propel-shim";
-import { renderFormattedDate } from "@plane/utils";
+import { renderFormattedDate } from "@dragonfruit/utils";
 // store
 import type { TPageInstance } from "@/store/pages/base-page";
 

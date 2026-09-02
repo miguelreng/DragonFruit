@@ -8,10 +8,10 @@ import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
-import { EUserPermissions, EUserPermissionsLevel, SIDEBAR_TRACKER_ELEMENTS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { EUserPermissions, EUserPermissionsLevel, SIDEBAR_TRACKER_ELEMENTS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 import { AddSquare } from "@solar-icons/react/ssr";
-import type { TIssue } from "@plane/types";
+import type { TIssue } from "@dragonfruit/types";
 // components
 import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";
 import { SidebarAddButton } from "@/components/sidebar/add-button";

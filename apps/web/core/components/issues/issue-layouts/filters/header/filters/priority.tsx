@@ -8,8 +8,8 @@ import { Collapse } from "@/components/common/collapse";
 import React, { useState } from "react";
 import { observer } from "mobx-react";
 // plane constants
-import { ISSUE_PRIORITIES } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { ISSUE_PRIORITIES } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 // ui
 import { PriorityIcon } from "@/components/icons/propel-shim";
 

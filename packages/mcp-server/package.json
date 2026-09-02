@@ -22,7 +22,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@plane/typescript-config": "workspace:*",
+    "@dragonfruit/typescript-config": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:"
   }

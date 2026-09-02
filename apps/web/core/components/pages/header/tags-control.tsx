@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
 import type { TPageInstance } from "@/store/pages/base-page";
 import { TagIcon, XIcon } from "@/components/icons/lucide-shim";
 import { normalizeTags, parseTagsInput } from "@/helpers/tags";

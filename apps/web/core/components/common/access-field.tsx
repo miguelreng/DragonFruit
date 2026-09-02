@@ -6,11 +6,11 @@
 
 import type { LucideIcon } from "@/components/icons/lucide-shim";
 // plane ui
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import type { ISvgIcons } from "@/components/icons/propel-shim";
-import { Tooltip } from "@plane/propel/tooltip";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 // plane utils
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 
 type Props = {
   onChange: (value: number) => void;

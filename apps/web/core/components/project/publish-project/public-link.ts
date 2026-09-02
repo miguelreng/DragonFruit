@@ -1,4 +1,4 @@
-import { SPACE_BASE_PATH, SPACE_BASE_URL } from "@plane/constants";
+import { SPACE_BASE_PATH, SPACE_BASE_URL } from "@dragonfruit/constants";
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "");
 

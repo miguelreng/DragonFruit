@@ -6,7 +6,7 @@
 
 import type { ReactNode, MutableRefObject } from "react";
 import React, { useState, useRef, useEffect } from "react";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 
 // One IntersectionObserver per (root, rootMargin) tuple, shared across all
 // rows. Each row registers an element-keyed callback. The previous

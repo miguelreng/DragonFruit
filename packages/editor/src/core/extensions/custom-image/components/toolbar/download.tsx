@@ -4,9 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import { Download } from "@plane/icons";
+import { Download } from "@dragonfruit/icons";
 // plane imports
-import { Tooltip } from "@plane/propel/tooltip";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 
 type Props = {
   src: string;

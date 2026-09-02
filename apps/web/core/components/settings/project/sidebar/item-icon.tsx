@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { TProjectSettingsTabs } from "@plane/types";
+import type { TProjectSettingsTabs } from "@dragonfruit/types";
 import type { SettingsSidebarIcon } from "../../sidebar/item";
 import {
   Chart,

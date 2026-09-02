@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { Content, JSONContent } from "@plane/types";
+import type { Content, JSONContent } from "@dragonfruit/types";
 
 const HTML_ENTITY_MAP: Record<string, string> = {
   amp: "&",

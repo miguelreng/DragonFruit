@@ -7,10 +7,10 @@ import { Collapse } from "@/components/common/collapse";
 
 import { useState } from "react";
 import { observer } from "mobx-react";
-import { ISSUE_PRIORITIES } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { ISSUE_PRIORITIES } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 import { PriorityIcon } from "@/components/icons/propel-shim";
-import type { TIssuePriorities } from "@plane/types";
+import type { TIssuePriorities } from "@dragonfruit/types";
 // plane constants
 // components
 import { FilterHeader, FilterOption } from "@/components/issues/issue-layouts/filters";

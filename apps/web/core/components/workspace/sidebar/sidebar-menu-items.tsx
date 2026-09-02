@@ -10,7 +10,7 @@ import { observer } from "mobx-react";
 import {
   WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS,
   WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS_LINKS,
-} from "@plane/constants";
+} from "@dragonfruit/constants";
 // plane-web imports
 import { SidebarItem } from "@/plane-web/components/workspace/sidebar/sidebar-item";
 

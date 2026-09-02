@@ -6,8 +6,8 @@
 
 import { observer } from "mobx-react";
 // plane types
-import type { IWorkspace } from "@plane/types";
-import { Spinner } from "@plane/propel/spinners";
+import type { IWorkspace } from "@dragonfruit/types";
+import { Spinner } from "@dragonfruit/propel/spinners";
 // components
 import { PowerKWorkspacesMenu } from "@/components/power-k/menus/workspaces";
 // hooks

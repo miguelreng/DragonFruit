@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState, type FocusEvent, type MouseEvent } from "react";
-import { useOutsideClickDetector } from "@plane/hooks";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
 
 type UseExpandableSearchOptions = {
   onClose?: () => void;

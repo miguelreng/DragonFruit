@@ -9,9 +9,9 @@
  */
 
 import type { ReactNode } from "react";
-import { Button } from "@plane/propel/button";
-import { ToastStatic, setPromiseToast, setToast, TOAST_TYPE, updateToast } from "@plane/propel/toast";
-import { cn } from "@plane/utils";
+import { Button } from "@dragonfruit/propel/button";
+import { ToastStatic, setPromiseToast, setToast, TOAST_TYPE, updateToast } from "@dragonfruit/propel/toast";
+import { cn } from "@dragonfruit/utils";
 
 const NOTIFICATION_SPEC = [
   ["Width", "360px"],
@@ -371,7 +371,7 @@ export default function ToastPreviewPage() {
           </div>
         </Section>
 
-        <Section title="Web app" subtitle="Static states rendered by the shared `@plane/propel/toast` component.">
+        <Section title="Web app" subtitle="Static states rendered by the shared `@dragonfruit/propel/toast` component.">
           <ComparisonBand>
             <WebToastColumn theme="light" />
             <WebToastColumn theme="dark" />

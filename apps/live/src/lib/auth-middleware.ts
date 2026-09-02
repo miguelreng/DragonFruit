@@ -5,7 +5,7 @@
  */
 
 import type { Request, Response, NextFunction } from "express";
-import { logger } from "@plane/logger";
+import { logger } from "@dragonfruit/logger";
 import { env } from "@/env";
 
 /**
@@ -21,7 +21,7 @@ import { env } from "@/env";
  *
  * @example
  * ```typescript
- * import { Middleware } from "@plane/decorators";
+ * import { Middleware } from "@dragonfruit/decorators";
  * import { requireSecretKey } from "@/lib/auth-middleware";
  *
  * @Get("/protected")

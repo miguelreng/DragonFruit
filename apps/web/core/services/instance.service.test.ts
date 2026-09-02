@@ -1,8 +1,8 @@
-import { getPublicApiBaseUrl } from "@plane/constants";
+import { getPublicApiBaseUrl } from "@dragonfruit/constants";
 import { describe, expect, it, vi } from "vitest";
 import { InstanceService } from "./instance.service";
 
-vi.mock("@plane/constants", () => ({
+vi.mock("@dragonfruit/constants", () => ({
   getPublicApiBaseUrl: vi.fn(() => "https://dragonfruit.page"),
 }));
 

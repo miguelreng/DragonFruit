@@ -9,12 +9,12 @@ import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
 import { Eye, EyeOff } from "@/components/icons/lucide-shim";
 // plane imports
-import { E_PASSWORD_STRENGTH } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Input, PasswordStrengthIndicator } from "@plane/ui";
-import { getPasswordStrength } from "@plane/utils";
+import { E_PASSWORD_STRENGTH } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Input, PasswordStrengthIndicator } from "@dragonfruit/ui";
+import { getPasswordStrength } from "@dragonfruit/utils";
 // helpers
 import { authErrorHandler, EAuthenticationErrorCodes, passwordErrors } from "@/helpers/authentication.helper";
 // hooks

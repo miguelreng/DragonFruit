@@ -5,7 +5,7 @@
  */
 
 // plane imports
-import { cn } from "@plane/ui";
+import { cn } from "@dragonfruit/ui";
 
 type Props = {
   className?: string;

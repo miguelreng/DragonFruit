@@ -8,16 +8,16 @@ import { concat, orderBy, set, uniq, update } from "lodash-es";
 import { action, makeObservable, observable, runInAction } from "mobx";
 import { computedFn } from "mobx-utils";
 // plane package imports
-import type { E_SORT_ORDER } from "@plane/constants";
-import { EActivityFilterType } from "@plane/constants";
+import type { E_SORT_ORDER } from "@dragonfruit/constants";
+import { EActivityFilterType } from "@dragonfruit/constants";
 import type {
   TIssueActivityComment,
   TIssueActivity,
   TIssueActivityMap,
   TIssueActivityIdMap,
   TIssueServiceType,
-} from "@plane/types";
-import { EIssueServiceType } from "@plane/types";
+} from "@dragonfruit/types";
+import { EIssueServiceType } from "@dragonfruit/types";
 // plane web constants
 // services
 import { IssueActivityService } from "@/services/issue";

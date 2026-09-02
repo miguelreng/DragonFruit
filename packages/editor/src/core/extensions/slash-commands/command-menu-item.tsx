@@ -5,7 +5,7 @@
  */
 
 // plane utils
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // types
 import type { ISlashCommandItem } from "@/types";
 

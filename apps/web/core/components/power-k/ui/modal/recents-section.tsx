@@ -5,7 +5,7 @@
 
 import { Command } from "cmdk";
 import { Clock, Pin, PinOff } from "@/components/icons/lucide-shim";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 import type { TPowerKRecentItem } from "../../hooks/use-power-k-recents";
 
 type Props = {

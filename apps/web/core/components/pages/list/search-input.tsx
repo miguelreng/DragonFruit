@@ -6,10 +6,10 @@
 
 import { useRef, useState } from "react";
 // plane imports
-import { useOutsideClickDetector } from "@plane/hooks";
-import { IconButton } from "@plane/propel/icon-button";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 import { SearchIcon, CloseIcon } from "@/components/icons/propel-shim";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 
 type Props = {
   searchQuery: string;

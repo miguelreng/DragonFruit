@@ -10,14 +10,14 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { Bell, BellOff, Ellipsis } from "@/components/icons/lucide-shim";
 // plane imports
-import { ARCHIVABLE_STATE_GROUPS, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TIssue } from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
-import type { TContextMenuItem } from "@plane/ui";
-import { ContextMenu, CustomMenu } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { ARCHIVABLE_STATE_GROUPS, EUserPermissions, EUserPermissionsLevel } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TIssue } from "@dragonfruit/types";
+import { EIssuesStoreType } from "@dragonfruit/types";
+import type { TContextMenuItem } from "@dragonfruit/ui";
+import { ContextMenu, CustomMenu } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useIssues } from "@/hooks/store/use-issues";
@@ -33,7 +33,7 @@ import { CreateUpdateIssueModal } from "../../issue-modal/modal";
 import type { IQuickActionProps } from "../list/list-view-types";
 import type { MenuItemFactoryProps } from "./helper";
 import { useWorkItemDetailMenuItems } from "./helper";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 type TWorkItemDetailQuickActionProps = IQuickActionProps & {
   toggleEditIssueModal?: (value: boolean) => void;

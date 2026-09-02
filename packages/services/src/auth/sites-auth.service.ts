@@ -4,9 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import { API_BASE_URL } from "@plane/constants";
+import { API_BASE_URL } from "@dragonfruit/constants";
 // types
-import type { IEmailCheckData, IEmailCheckResponse } from "@plane/types";
+import type { IEmailCheckData, IEmailCheckResponse } from "@dragonfruit/types";
 // services
 import { APIService } from "../api.service";
 

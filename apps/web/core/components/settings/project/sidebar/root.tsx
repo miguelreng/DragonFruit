@@ -5,7 +5,7 @@
  */
 
 // plane imports
-import { ScrollArea } from "@plane/propel/scrollarea";
+import { ScrollArea } from "@dragonfruit/propel/scrollarea";
 // local imports
 import { ProjectSettingsSidebarHeader } from "./header";
 import { ProjectSettingsSidebarItemCategories } from "./item-categories";

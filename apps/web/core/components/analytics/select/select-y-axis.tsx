@@ -6,11 +6,11 @@
 
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { EEstimateSystem } from "@plane/constants";
+import { EEstimateSystem } from "@dragonfruit/constants";
 import { ProjectIcon } from "@/components/icons/propel-shim";
-import type { ChartYAxisMetric } from "@plane/types";
+import type { ChartYAxisMetric } from "@dragonfruit/types";
 // plane package imports
-import { CustomSelect } from "@plane/ui";
+import { CustomSelect } from "@dragonfruit/ui";
 // hooks
 import { useProjectEstimates } from "@/hooks/store/estimates";
 // plane web constants

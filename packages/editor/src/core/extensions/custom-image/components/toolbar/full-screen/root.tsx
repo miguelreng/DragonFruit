@@ -4,10 +4,10 @@
  * See the LICENSE file for details.
  */
 
-import { Maximize } from "@plane/icons";
+import { Maximize } from "@dragonfruit/icons";
 import { useEffect, useState } from "react";
 // plane imports
-import { Tooltip } from "@plane/propel/tooltip";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 // local imports
 import { ImageFullScreenModal } from "./modal";
 

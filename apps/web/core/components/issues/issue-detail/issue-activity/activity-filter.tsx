@@ -7,12 +7,12 @@
 import { observer } from "mobx-react";
 import { Check, ListFilter } from "@/components/icons/lucide-shim";
 // plane imports
-import type { TActivityFilters, TActivityFilterOption } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { IconButton } from "@plane/propel/icon-button";
-import { PopoverMenu } from "@plane/ui";
+import type { TActivityFilters, TActivityFilterOption } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { IconButton } from "@dragonfruit/propel/icon-button";
+import { PopoverMenu } from "@dragonfruit/ui";
 // helper
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // constants
 
 type TActivityFilter = {

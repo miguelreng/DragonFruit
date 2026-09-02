@@ -5,7 +5,7 @@
  */
 
 import React from "react";
-import type { IIssueDisplayProperties, TIssue } from "@plane/types";
+import type { IIssueDisplayProperties, TIssue } from "@dragonfruit/types";
 
 export type TWorkItemLayoutAdditionalProperties = {
   displayProperties: IIssueDisplayProperties;

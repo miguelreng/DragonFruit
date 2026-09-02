@@ -7,8 +7,8 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import type { CollaborationState, EditorRefApi, EditorTitleRefApi } from "@plane/editor";
-import type { TDocumentPayload, TPage, TPageVersion, TWebhookConnectionQueryParams } from "@plane/types";
+import type { CollaborationState, EditorRefApi, EditorTitleRefApi } from "@dragonfruit/editor";
+import type { TDocumentPayload, TPage, TPageVersion, TWebhookConnectionQueryParams } from "@dragonfruit/types";
 // hooks
 import { usePageFallback } from "@/hooks/use-page-fallback";
 import { useUnsyncedPageTracker } from "@/hooks/use-unsynced-page-tracker";

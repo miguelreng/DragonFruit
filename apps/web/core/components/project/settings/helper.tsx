@@ -5,11 +5,11 @@
  */
 
 import Link from "next/link";
-import { PROJECT_TRACKER_ELEMENTS } from "@plane/constants";
+import { PROJECT_TRACKER_ELEMENTS } from "@dragonfruit/constants";
 import { ChevronRightIcon } from "@/components/icons/propel-shim";
-import { EPillVariant, Pill, EPillSize } from "@plane/propel/pill";
-import { ToggleSwitch } from "@plane/ui";
-import { joinUrlPath } from "@plane/utils";
+import { EPillVariant, Pill, EPillSize } from "@dragonfruit/propel/pill";
+import { ToggleSwitch } from "@dragonfruit/ui";
+import { joinUrlPath } from "@dragonfruit/utils";
 
 type Props = {
   workspaceSlug: string;

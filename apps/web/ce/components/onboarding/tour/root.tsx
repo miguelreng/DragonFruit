@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { Button } from "@plane/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 import { CloseIcon, DragonfruitLockup } from "@/components/icons/propel-shim";
 // assets
 import AgentsTour from "@/app/assets/empty-state/onboarding/search-dark.png?url";

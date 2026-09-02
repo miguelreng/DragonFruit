@@ -11,11 +11,11 @@ import { useParams } from "next/navigation";
 import { usePopper } from "react-popper";
 import { Combobox } from "@headlessui/react";
 // plane imports
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { CheckIcon, SearchIcon, EstimatePropertyIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
-import { EEstimateSystem } from "@plane/types";
-import { ComboDropDown } from "@plane/ui";
-import { convertMinutesToHoursMinutesString, cn } from "@plane/utils";
+import { EEstimateSystem } from "@dragonfruit/types";
+import { ComboDropDown } from "@dragonfruit/ui";
+import { convertMinutesToHoursMinutesString, cn } from "@dragonfruit/utils";
 // hooks
 import { useProjectEstimates } from "@/hooks/store/estimates";
 import { useEstimate } from "@/hooks/store/estimates/use-estimate";

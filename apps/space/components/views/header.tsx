@@ -6,7 +6,7 @@
 
 import React from "react";
 import { Link } from "react-router";
-import { DragonfruitLockup } from "@plane/propel/icons";
+import { DragonfruitLockup } from "@dragonfruit/propel/icons";
 
 export function AuthHeader() {
   return (

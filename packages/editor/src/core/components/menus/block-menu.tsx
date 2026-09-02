@@ -15,11 +15,11 @@ import {
   FloatingPortal,
 } from "@floating-ui/react";
 import type { Editor } from "@tiptap/react";
-import type { LucideIcon } from "@plane/icons";
+import type { LucideIcon } from "@dragonfruit/icons";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CopyIcon, TrashIcon } from "@plane/propel/icons";
-import type { ISvgIcons } from "@plane/propel/icons";
-import { cn } from "@plane/utils";
+import { CopyIcon, TrashIcon } from "@dragonfruit/propel/icons";
+import type { ISvgIcons } from "@dragonfruit/propel/icons";
+import { cn } from "@dragonfruit/utils";
 // constants
 import { CORE_EXTENSIONS } from "@/constants/extension";
 // plane editor types

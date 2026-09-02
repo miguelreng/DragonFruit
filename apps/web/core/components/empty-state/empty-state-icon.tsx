@@ -33,7 +33,7 @@ import {
   UsersGroupTwoRounded,
   Widget,
 } from "@solar-icons/react/ssr";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 
 // An empty tab echoes the same Solar glyph its sidebar/nav entry uses, so a blank
 // surface reads as "this is the <feature> page" rather than a generic

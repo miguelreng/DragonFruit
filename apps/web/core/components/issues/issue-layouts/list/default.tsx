@@ -9,7 +9,7 @@ import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { autoScrollForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
 import { observer } from "mobx-react";
 // plane constants
-import { ALL_ISSUES } from "@plane/constants";
+import { ALL_ISSUES } from "@dragonfruit/constants";
 // types
 import type {
   GroupByColumnTypes,
@@ -21,7 +21,7 @@ import type {
   TIssueOrderByOptions,
   IGroupByColumn,
   TIssueKanbanFilters,
-} from "@plane/types";
+} from "@dragonfruit/types";
 // components
 import { MultipleSelectGroup } from "@/components/core/multiple-select";
 // hooks

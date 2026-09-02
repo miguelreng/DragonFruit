@@ -5,8 +5,8 @@
  */
 
 // plane imports
-import type { TSupportedFilterFieldConfigs, IFilterOption, TFilterValue } from "@plane/types";
-import { cn } from "@plane/utils";
+import type { TSupportedFilterFieldConfigs, IFilterOption, TFilterValue } from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 // local imports
 import { COMMON_FILTER_ITEM_BORDER_CLASSNAME } from "../../shared";
 

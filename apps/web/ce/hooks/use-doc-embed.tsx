@@ -12,7 +12,7 @@ import type {
   TDocEmbedPickerMode,
   TDocEmbedPickerRequest,
   TDocEmbedType,
-} from "@plane/editor";
+} from "@dragonfruit/editor";
 import { DEFAULT_CHART_SPEC } from "@/components/chart/spec";
 import { DocChartEmbed } from "@/components/editor/embeds/chart/chart-embed";
 import { DocEmbedCard, DocEmbedPicker, WhiteboardEmbed } from "@/components/editor/embeds/doc-embed";

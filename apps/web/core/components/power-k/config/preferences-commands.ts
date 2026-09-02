@@ -7,11 +7,11 @@
 import { useCallback } from "react";
 import { useTheme } from "next-themes";
 import { Calendar, Earth, Languages, Palette } from "@/components/icons/lucide-shim";
-import { THEME_OPTIONS } from "@plane/constants";
+import { THEME_OPTIONS } from "@dragonfruit/constants";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { setToast, TOAST_TYPE } from "@plane/propel/toast";
-import type { EStartOfTheWeek, TUserProfile } from "@plane/types";
+import { useTranslation } from "@dragonfruit/i18n";
+import { setToast, TOAST_TYPE } from "@dragonfruit/propel/toast";
+import type { EStartOfTheWeek, TUserProfile } from "@dragonfruit/types";
 // components
 import type { TPowerKCommandConfig } from "@/components/power-k/core/types";
 // hooks

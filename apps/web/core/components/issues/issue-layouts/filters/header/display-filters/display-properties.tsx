@@ -8,11 +8,11 @@ import { Collapse } from "@/components/common/collapse";
 import React from "react";
 import { observer } from "mobx-react";
 // plane constants
-import { ISSUE_DISPLAY_PROPERTIES } from "@plane/constants";
+import { ISSUE_DISPLAY_PROPERTIES } from "@dragonfruit/constants";
 // plane i18n
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 // types
-import type { IIssueDisplayProperties } from "@plane/types";
+import type { IIssueDisplayProperties } from "@dragonfruit/types";
 // components
 import { FilterHeader } from "../helpers/filter-header";
 

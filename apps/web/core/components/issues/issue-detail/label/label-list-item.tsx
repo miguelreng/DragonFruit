@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import { Tag, X } from "@/components/icons/lucide-shim";
-import { Button } from "@plane/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 // types
 import { useLabel } from "@/hooks/store/use-label";
 import type { TLabelOperations } from "./root";

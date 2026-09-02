@@ -7,12 +7,12 @@
 import { useParams } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 // plane imports
-import { allTimeIn30MinutesInterval12HoursFormat } from "@plane/constants";
-import { Button } from "@plane/propel/button";
+import { allTimeIn30MinutesInterval12HoursFormat } from "@dragonfruit/constants";
+import { Button } from "@dragonfruit/propel/button";
 import { CloseIcon } from "@/components/icons/propel-shim";
-import { CustomSelect, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
+import { CustomSelect, EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
 // components
-import { getDate, cn } from "@plane/utils";
+import { getDate, cn } from "@dragonfruit/utils";
 import { DateDropdown } from "@/components/dropdowns/date";
 
 type TNotificationSnoozeModal = {

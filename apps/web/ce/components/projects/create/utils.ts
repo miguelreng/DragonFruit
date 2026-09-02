@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { RANDOM_EMOJI_CODES } from "@plane/constants";
-import type { IProject } from "@plane/types";
+import { RANDOM_EMOJI_CODES } from "@dragonfruit/constants";
+import type { IProject } from "@dragonfruit/types";
 
 export const getProjectFormValues = (): Partial<IProject> => ({
   description: "",

@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import type { TCalendarLayouts } from "@plane/types";
-import { EStartOfTheWeek } from "@plane/types";
+import type { TCalendarLayouts } from "@dragonfruit/types";
+import { EStartOfTheWeek } from "@dragonfruit/types";
 
 export const MONTHS_LIST: {
   [monthNumber: number]: {

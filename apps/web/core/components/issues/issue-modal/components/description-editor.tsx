@@ -10,14 +10,14 @@ import type { Control } from "react-hook-form";
 import { Controller } from "react-hook-form";
 import { Sparkle } from "@/components/icons/lucide-shim";
 // plane imports
-import { ETabIndices } from "@plane/constants";
-import type { EditorRefApi } from "@plane/editor";
-import { useTranslation } from "@plane/i18n";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TIssue } from "@plane/types";
-import { EFileAssetType } from "@plane/types";
-import { Loader } from "@plane/ui";
-import { getDescriptionPlaceholderI18n, getTabIndex } from "@plane/utils";
+import { ETabIndices } from "@dragonfruit/constants";
+import type { EditorRefApi } from "@dragonfruit/editor";
+import { useTranslation } from "@dragonfruit/i18n";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TIssue } from "@dragonfruit/types";
+import { EFileAssetType } from "@dragonfruit/types";
+import { Loader } from "@dragonfruit/ui";
+import { getDescriptionPlaceholderI18n, getTabIndex } from "@dragonfruit/utils";
 // components
 import { GptAssistantPopover } from "@/components/core/modals/gpt-assistant-popover";
 import { RichTextEditor } from "@/components/editor/rich-text";

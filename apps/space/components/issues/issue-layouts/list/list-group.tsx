@@ -7,7 +7,7 @@
 import type { MutableRefObject } from "react";
 import { Fragment, forwardRef, useRef, useState } from "react";
 import { observer } from "mobx-react";
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 // plane types
 import type {
   IGroupByColumn,
@@ -15,9 +15,9 @@ import type {
   IIssueDisplayProperties,
   TPaginationData,
   TLoader,
-} from "@plane/types";
+} from "@dragonfruit/types";
 // plane utils
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useIntersectionObserver } from "@/hooks/use-intersection-observer";
 //

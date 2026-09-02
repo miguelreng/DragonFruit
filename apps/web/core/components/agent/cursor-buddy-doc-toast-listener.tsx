@@ -6,8 +6,8 @@
 
 import { useEffect, useRef } from "react";
 import useSWR from "swr";
-import type { TNotification, TNotificationPaginatedInfoQueryParams } from "@plane/types";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import type { TNotification, TNotificationPaginatedInfoQueryParams } from "@dragonfruit/types";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
 import workspaceNotificationService from "@/services/workspace-notification.service";
 
 type TCursorBuddyResource = NonNullable<TNotification["data"]>["cursor_buddy"];

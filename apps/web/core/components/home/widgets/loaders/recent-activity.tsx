@@ -6,7 +6,7 @@
 
 import { range } from "lodash-es";
 // ui
-import { Loader } from "@plane/ui";
+import { Loader } from "@dragonfruit/ui";
 
 export function RecentActivityWidgetLoader() {
   return (

@@ -17,15 +17,15 @@ import {
   EUserPermissions,
   EUserPermissionsLevel,
   IS_FAVORITE_MENU_OPEN,
-} from "@plane/constants";
-import { useLocalStorage } from "@plane/hooks";
+} from "@dragonfruit/constants";
+import { useLocalStorage } from "@dragonfruit/hooks";
 import { WorkItemsIcon } from "@/components/icons/propel-shim";
-import { TOAST_TYPE, setPromiseToast, setToast } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { IModule } from "@plane/types";
-import { FavoriteStar, LinearProgressIndicator } from "@plane/ui";
-import { Card } from "@plane/propel/card";
-import { getDate, renderFormattedPayloadDate, generateQueryParams } from "@plane/utils";
+import { TOAST_TYPE, setPromiseToast, setToast } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { IModule } from "@dragonfruit/types";
+import { FavoriteStar, LinearProgressIndicator } from "@dragonfruit/ui";
+import { Card } from "@dragonfruit/propel/card";
+import { getDate, renderFormattedPayloadDate, generateQueryParams } from "@dragonfruit/utils";
 // components
 import { DateRangeDropdown } from "@/components/dropdowns/date-range";
 import { ButtonAvatars } from "@/components/dropdowns/member/avatar";

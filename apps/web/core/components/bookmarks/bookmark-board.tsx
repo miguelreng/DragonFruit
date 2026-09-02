@@ -20,15 +20,15 @@ import {
 import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
 import Link from "next/link";
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { fetchWikipediaSummary } from "@plane/editor";
-import { EmptyStateDetailed } from "@plane/propel/empty-state";
-import { Button, getButtonStyling } from "@plane/propel/button";
+import { EUserPermissions, EUserPermissionsLevel } from "@dragonfruit/constants";
+import { fetchWikipediaSummary } from "@dragonfruit/editor";
+import { EmptyStateDetailed } from "@dragonfruit/propel/empty-state";
+import { Button, getButtonStyling } from "@dragonfruit/propel/button";
 import { ChevronDownIcon } from "@/components/icons/propel-shim";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TProjectBookmark, TProjectBookmarkCreatePayload } from "@plane/types";
-import { AlertModalCore, Breadcrumbs, Checkbox, CustomMenu, EModalWidth, Header, Loader, ModalCore } from "@plane/ui";
-import { cn, renderFormattedDate } from "@plane/utils";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TProjectBookmark, TProjectBookmarkCreatePayload } from "@dragonfruit/types";
+import { AlertModalCore, Breadcrumbs, Checkbox, CustomMenu, EModalWidth, Header, Loader, ModalCore } from "@dragonfruit/ui";
+import { cn, renderFormattedDate } from "@dragonfruit/utils";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { AppHeader } from "@/components/core/app-header";
 import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
@@ -57,7 +57,7 @@ import {
 } from "./helpers";
 import { ImportBookmarksModal } from "./import-bookmarks-modal";
 import { SuggestedTagChips } from "./suggested-tag-chips";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 type BoardIconComponent = ComponentType<{
   className?: string;

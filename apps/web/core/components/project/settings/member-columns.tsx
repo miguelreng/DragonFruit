@@ -10,11 +10,11 @@ import { Controller, useForm } from "react-hook-form";
 import { CircleMinus } from "@/components/icons/lucide-shim";
 import { Disclosure } from "@headlessui/react";
 // plane imports
-import { ROLE, EUserPermissions, MEMBER_TRACKER_ELEMENTS } from "@plane/constants";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { EUserProjectRoles, IUser, IWorkspaceMember, TProjectMembership } from "@plane/types";
-import { CustomMenu, CustomSelect } from "@plane/ui";
-import { getFileURL } from "@plane/utils";
+import { ROLE, EUserPermissions, MEMBER_TRACKER_ELEMENTS } from "@dragonfruit/constants";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { EUserProjectRoles, IUser, IWorkspaceMember, TProjectMembership } from "@dragonfruit/types";
+import { CustomMenu, CustomSelect } from "@dragonfruit/ui";
+import { getFileURL } from "@dragonfruit/utils";
 // hooks
 import { useMember } from "@/hooks/store/use-member";
 import { useUser, useUserPermissions } from "@/hooks/store/user";

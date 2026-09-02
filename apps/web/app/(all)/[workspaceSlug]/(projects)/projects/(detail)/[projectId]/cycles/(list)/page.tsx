@@ -7,14 +7,14 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { EUserPermissionsLevel, CYCLE_TRACKER_ELEMENTS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { EmptyStateDetailed } from "@plane/propel/empty-state";
-import type { TCycleFilters } from "@plane/types";
-import { EUserProjectRoles } from "@plane/types";
+import { EUserPermissionsLevel, CYCLE_TRACKER_ELEMENTS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { EmptyStateDetailed } from "@dragonfruit/propel/empty-state";
+import type { TCycleFilters } from "@dragonfruit/types";
+import { EUserProjectRoles } from "@dragonfruit/types";
 // components
-import { Header, EHeaderVariant } from "@plane/ui";
-import { calculateTotalFilters } from "@plane/utils";
+import { Header, EHeaderVariant } from "@dragonfruit/ui";
+import { calculateTotalFilters } from "@dragonfruit/utils";
 // components
 import { PageHead } from "@/components/core/page-title";
 import { CycleAppliedFiltersList } from "@/components/cycles/applied-filters";

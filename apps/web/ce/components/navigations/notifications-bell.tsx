@@ -8,11 +8,11 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // plane imports
-import { ENotificationLoader, ENotificationQueryParamType } from "@plane/constants";
-import { Popover } from "@plane/propel/popover";
-import { Spinner } from "@plane/propel/spinners";
+import { ENotificationLoader, ENotificationQueryParamType } from "@dragonfruit/constants";
+import { Popover } from "@dragonfruit/propel/popover";
+import { Spinner } from "@dragonfruit/propel/spinners";
 // icons
 import { Bell } from "@solar-icons/react/ssr";
 import { CheckCheck } from "@/components/icons/lucide-shim";

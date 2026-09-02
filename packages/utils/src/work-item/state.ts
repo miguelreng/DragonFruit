@@ -5,9 +5,9 @@
  */
 
 // plane imports
-import type { TDraggableData } from "@plane/constants";
-import { STATE_GROUPS } from "@plane/constants";
-import type { IState, IStateResponse } from "@plane/types";
+import type { TDraggableData } from "@dragonfruit/constants";
+import { STATE_GROUPS } from "@dragonfruit/constants";
+import type { IState, IStateResponse } from "@dragonfruit/types";
 
 export const orderStateGroups = (unorderedStateGroups: IStateResponse | undefined): IStateResponse | undefined => {
   if (!unorderedStateGroups) return undefined;

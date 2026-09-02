@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 // components
-import { EmptyStateDetailed } from "@plane/propel/empty-state";
+import { EmptyStateDetailed } from "@dragonfruit/propel/empty-state";
 import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 
 export const ProjectViewEmptyState = observer(function ProjectViewEmptyState() {

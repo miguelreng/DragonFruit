@@ -7,14 +7,14 @@
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 // plane imports
-import { ETabIndices } from "@plane/constants";
+import { ETabIndices } from "@dragonfruit/constants";
 // types
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import type { ICycle } from "@plane/types";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import type { ICycle } from "@dragonfruit/types";
 // ui
-import { Input, TextArea } from "@plane/ui";
-import { getDate, renderFormattedPayloadDate, getTabIndex } from "@plane/utils";
+import { Input, TextArea } from "@dragonfruit/ui";
+import { getDate, renderFormattedPayloadDate, getTabIndex } from "@dragonfruit/utils";
 // components
 import { DateRangeDropdown } from "@/components/dropdowns/date-range";
 import { ProjectDropdown } from "@/components/dropdowns/project/dropdown";

@@ -8,8 +8,8 @@ import React from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { CloseIcon } from "@/components/icons/propel-shim";
-import type { IFilterInstance } from "@plane/shared-state";
-import type { TExternalFilter, TFilterProperty } from "@plane/types";
+import type { IFilterInstance } from "@dragonfruit/shared-state";
+import type { TExternalFilter, TFilterProperty } from "@dragonfruit/types";
 
 interface FilterItemCloseButtonProps<P extends TFilterProperty, E extends TExternalFilter> {
   conditionId: string;

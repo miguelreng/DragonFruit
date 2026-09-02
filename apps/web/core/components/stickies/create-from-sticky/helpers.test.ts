@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { EPageAccess } from "@plane/types";
+import { EPageAccess } from "@dragonfruit/types";
 import { buildStickyTargetPayload, resolveStickyTargetTitle } from "./helpers";
 
 describe("resolveStickyTargetTitle", () => {

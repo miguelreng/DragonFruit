@@ -11,7 +11,7 @@ import type {
   IIssueFilterOptions,
   TIssue,
   EIssuesStoreType,
-} from "@plane/types";
+} from "@dragonfruit/types";
 
 export const ALL_ISSUES = "All Issues";
 

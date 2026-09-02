@@ -6,7 +6,7 @@
 
 import React from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Button } from "@plane/propel/button";
+import { Button } from "@dragonfruit/propel/button";
 
 const meta = {
   title: "Design System/Behaviors",
@@ -174,14 +174,14 @@ export const Stacking: Story = {
             </p>
           </Trap>
 
-          <Trap title="El Popover de @plane/ui no portalea">
+          <Trap title="El Popover de @dragonfruit/ui no portalea">
             <p>
               Renderiza en flujo, así que cualquier ancestro con <code>overflow-hidden</code> (una píldora de header,
               por ejemplo) lo recorta a nada — mientras el elemento sigue reportándose visible y con opacidad 1, lo que
               hace el diagnóstico confuso.
             </p>
             <p className="text-12 text-tertiary">
-              Arreglo: usar <code>@plane/propel/popover</code>, que portalea correctamente.
+              Arreglo: usar <code>@dragonfruit/propel/popover</code>, que portalea correctamente.
             </p>
           </Trap>
         </div>
@@ -211,7 +211,7 @@ export const Feedback: Story = {
             </div>
           ))}
         </div>
-        <Snippet>{`import { setToast, TOAST_TYPE } from "@plane/propel/toast";
+        <Snippet>{`import { setToast, TOAST_TYPE } from "@dragonfruit/propel/toast";
 
 setToast({
   type: TOAST_TYPE.SUCCESS,   // SUCCESS | ERROR | WARNING | INFO | LOADING

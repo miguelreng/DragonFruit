@@ -5,10 +5,10 @@
  */
 
 import { Sidebar } from "@solar-icons/react/ssr";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useAppRailPreferences } from "@/hooks/use-navigation-preferences";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 type Props = {
   // Trailing vertical divider, used in the page header to set the toggle apart

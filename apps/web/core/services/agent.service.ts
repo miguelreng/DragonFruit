@@ -5,7 +5,7 @@
  */
 
 // services
-import { API_BASE_URL } from "@plane/constants";
+import { API_BASE_URL } from "@dragonfruit/constants";
 import { APIService } from "@/services/api.service";
 
 /** An MCP server as returned by the API (ciphertext stripped — only presence is exposed). */

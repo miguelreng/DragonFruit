@@ -7,12 +7,12 @@
 import { useCallback } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { EUserPermissionsLevel } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import type { EViewAccess, TViewFilterProps } from "@plane/types";
-import { EUserProjectRoles } from "@plane/types";
-import { Header, EHeaderVariant } from "@plane/ui";
-import { calculateTotalFilters } from "@plane/utils";
+import { EUserPermissionsLevel } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { EViewAccess, TViewFilterProps } from "@dragonfruit/types";
+import { EUserProjectRoles } from "@dragonfruit/types";
+import { Header, EHeaderVariant } from "@dragonfruit/ui";
+import { calculateTotalFilters } from "@dragonfruit/utils";
 // components
 import { PageHead } from "@/components/core/page-title";
 import { DetailedEmptyState } from "@/components/empty-state/detailed-empty-state-root";

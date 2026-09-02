@@ -6,10 +6,10 @@
 
 import { useRouter } from "next/navigation";
 // types
-import type { TIssue } from "@plane/types";
-import { EIssueServiceType } from "@plane/types";
+import type { TIssue } from "@dragonfruit/types";
+import { EIssueServiceType } from "@dragonfruit/types";
 // helpers
-import { generateWorkItemLink } from "@plane/utils";
+import { generateWorkItemLink } from "@dragonfruit/utils";
 // hooks
 import { useIssueDetail } from "./store/use-issue-detail";
 import { useProject } from "./store/use-project";

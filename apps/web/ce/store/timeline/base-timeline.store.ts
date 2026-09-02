@@ -14,8 +14,8 @@ import type {
   IGanttBlock,
   TGanttViews,
   EGanttBlockType,
-} from "@plane/types";
-import { renderFormattedPayloadDate } from "@plane/utils";
+} from "@dragonfruit/types";
+import { renderFormattedPayloadDate } from "@dragonfruit/utils";
 import { currentViewDataWithView } from "@/components/gantt-chart/data";
 import {
   getDateFromPositionOnGantt,

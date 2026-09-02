@@ -6,8 +6,8 @@
 
 import { observer } from "mobx-react";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { cn } from "@plane/utils";
+import { useTranslation } from "@dragonfruit/i18n";
+import { cn } from "@dragonfruit/utils";
 // components
 import { resolveWorkspaceLogoSrc } from "./default-logos";
 

@@ -4,11 +4,11 @@
  * See the LICENSE file for details.
  */
 
-import { ImageIcon, RotateCcw } from "@plane/icons";
+import { ImageIcon, RotateCcw } from "@dragonfruit/icons";
 import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 // plane imports
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // constants
 import { ACCEPTED_IMAGE_MIME_TYPES } from "@/constants/config";
 import { CORE_EXTENSIONS } from "@/constants/extension";

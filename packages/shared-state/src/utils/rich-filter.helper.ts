@@ -5,9 +5,9 @@
  */
 
 // plane imports
-import type { TBuildFilterExpressionParams, TExternalFilter, TFilterProperty, TFilterValue } from "@plane/types";
-import { LOGICAL_OPERATOR } from "@plane/types";
-import { getOperatorForPayload } from "@plane/utils";
+import type { TBuildFilterExpressionParams, TExternalFilter, TFilterProperty, TFilterValue } from "@dragonfruit/types";
+import { LOGICAL_OPERATOR } from "@dragonfruit/types";
+import { getOperatorForPayload } from "@dragonfruit/utils";
 // local imports
 import { FilterInstance } from "../store/rich-filters/filter";
 

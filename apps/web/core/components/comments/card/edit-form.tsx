@@ -5,14 +5,14 @@
  */
 
 import { useEffect, useRef } from "react";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 import { observer } from "mobx-react";
 import { useForm } from "react-hook-form";
-import type { EditorRefApi } from "@plane/editor";
+import type { EditorRefApi } from "@dragonfruit/editor";
 import { CheckIcon, CloseIcon } from "@/components/icons/propel-shim";
 // plane imports
-import type { TCommentsOperations, TIssueComment } from "@plane/types";
-import { cn, isCommentEmpty } from "@plane/utils";
+import type { TCommentsOperations, TIssueComment } from "@dragonfruit/types";
+import { cn, isCommentEmpty } from "@dragonfruit/utils";
 // components
 import { LiteTextEditor } from "@/components/editor/lite-text";
 import { CommentAttachmentMenu } from "../attachment-menu";

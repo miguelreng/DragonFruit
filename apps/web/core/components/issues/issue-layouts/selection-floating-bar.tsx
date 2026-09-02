@@ -8,15 +8,15 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { EIssuesStoreType } from "@plane/types";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { EIssuesStoreType } from "@dragonfruit/types";
 // icons
 import { ArchiveIcon, StateGroupIcon } from "@/components/icons/propel-shim";
 import { ChevronDown, Trash2, X } from "@/components/icons/lucide-shim";
 // ui
-import { CustomMenu } from "@plane/ui";
+import { CustomMenu } from "@dragonfruit/ui";
 // hooks
 import { useMultipleSelectStore } from "@/hooks/store/use-multiple-select-store";
 import { useIssues } from "@/hooks/store/use-issues";

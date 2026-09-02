@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { IWorkspaceSidebarNavigationItem } from "@plane/constants";
+import type { IWorkspaceSidebarNavigationItem } from "@dragonfruit/constants";
 import { SidebarItemBase } from "@/components/workspace/sidebar/sidebar-item";
 
 type Props = {

@@ -7,10 +7,10 @@
 import { ArrowLeft } from "@/components/icons/lucide-shim";
 import { observer } from "mobx-react";
 // plane imports
-import { ROLE_DETAILS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { Logo } from "@plane/propel/emoji-icon-picker";
-import { IconButton } from "@plane/propel/icon-button";
+import { ROLE_DETAILS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Logo } from "@dragonfruit/propel/emoji-icon-picker";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 // hooks
 import { useUserPermissions } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";

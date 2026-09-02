@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { TIssue } from "@plane/types";
+import type { TIssue } from "@dragonfruit/types";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function TransferHopInfo({ workItem }: { workItem: TIssue }) {
   return <></>;

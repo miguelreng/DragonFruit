@@ -7,8 +7,8 @@
 import React from "react";
 import { Transition } from "@headlessui/react";
 // plane imports
-import type { SingleOrArray, IFilterOption, TFilterValue } from "@plane/types";
-import { cn, toFilterArray } from "@plane/utils";
+import type { SingleOrArray, IFilterOption, TFilterValue } from "@dragonfruit/types";
+import { cn, toFilterArray } from "@dragonfruit/utils";
 import { EMPTY_FILTER_PLACEHOLDER_TEXT } from "../../shared";
 
 type TSelectedOptionsDisplayProps<V extends TFilterValue> = {

@@ -8,9 +8,9 @@ import { useCallback } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane constants
-import { EIssueFilterType, ISSUE_LAYOUTS, ISSUE_DISPLAY_FILTERS_BY_PAGE } from "@plane/constants";
+import { EIssueFilterType, ISSUE_LAYOUTS, ISSUE_DISPLAY_FILTERS_BY_PAGE } from "@dragonfruit/constants";
 // plane i18n
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 // icons
 import { ChevronDownIcon } from "@/components/icons/propel-shim";
 // types
@@ -19,10 +19,10 @@ import type {
   IIssueDisplayProperties,
   TIssueLayouts,
   EIssueLayoutTypes,
-} from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
+} from "@dragonfruit/types";
+import { EIssuesStoreType } from "@dragonfruit/types";
 // ui
-import { CustomMenu } from "@plane/ui";
+import { CustomMenu } from "@dragonfruit/ui";
 // components
 import { DisplayFiltersSelection, FiltersDropdown } from "@/components/issues/issue-layouts/filters";
 import { IssueLayoutIcon } from "@/components/issues/issue-layouts/layout-icon";

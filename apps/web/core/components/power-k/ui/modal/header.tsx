@@ -7,7 +7,7 @@
 import React from "react";
 import { Command } from "cmdk";
 import { X } from "@/components/icons/lucide-shim";
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 // plane imports
 import { SearchIcon } from "@/components/icons/propel-shim";
 // local imports

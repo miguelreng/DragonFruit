@@ -5,8 +5,8 @@
  */
 
 // types
-import type { ICycle, IModule, IProjectView } from "@plane/types";
-import type { TContextMenuItem } from "@plane/ui";
+import type { ICycle, IModule, IProjectView } from "@dragonfruit/types";
+import type { TContextMenuItem } from "@dragonfruit/ui";
 // hooks
 import { useQuickActionsFactory } from "@/plane-web/components/common/quick-actions-factory";
 

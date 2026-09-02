@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { EIssueGroupByToServerOptions, EServerGroupByToFilterOptions } from "@plane/constants";
-import type { IssuePaginationOptions, TIssueParams } from "@plane/types";
+import { EIssueGroupByToServerOptions, EServerGroupByToFilterOptions } from "@dragonfruit/constants";
+import type { IssuePaginationOptions, TIssueParams } from "@dragonfruit/types";
 
 /**
  * This Method is used to construct the url params along with paginated values

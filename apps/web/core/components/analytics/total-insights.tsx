@@ -8,11 +8,11 @@
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
-import type { IInsightField } from "@plane/constants";
-import { ANALYTICS_INSIGHTS_FIELDS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import type { IAnalyticsResponse, TAnalyticsTabsBase } from "@plane/types";
-import { cn } from "@plane/utils";
+import type { IInsightField } from "@dragonfruit/constants";
+import { ANALYTICS_INSIGHTS_FIELDS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { IAnalyticsResponse, TAnalyticsTabsBase } from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useAnalytics } from "@/hooks/store/use-analytics";
 // services

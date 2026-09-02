@@ -8,10 +8,10 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
 // plane imports
-import { ETabIndices, ISSUE_DISPLAY_FILTERS_BY_PAGE } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { EmojiPicker, EmojiIconPickerTypes, Logo } from "@plane/propel/emoji-icon-picker";
+import { ETabIndices, ISSUE_DISPLAY_FILTERS_BY_PAGE } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { EmojiPicker, EmojiIconPickerTypes, Logo } from "@dragonfruit/propel/emoji-icon-picker";
 import { ViewsIcon } from "@/components/icons/propel-shim";
 import type {
   IIssueDisplayFilterOptions,
@@ -19,10 +19,10 @@ import type {
   IProjectView,
   EIssueLayoutTypes,
   IIssueFilters,
-} from "@plane/types";
-import { EViewAccess, EIssuesStoreType } from "@plane/types";
-import { Input, TextArea } from "@plane/ui";
-import { getComputedDisplayFilters, getComputedDisplayProperties, getTabIndex } from "@plane/utils";
+} from "@dragonfruit/types";
+import { EViewAccess, EIssuesStoreType } from "@dragonfruit/types";
+import { Input, TextArea } from "@dragonfruit/ui";
+import { getComputedDisplayFilters, getComputedDisplayProperties, getTabIndex } from "@dragonfruit/utils";
 // components
 import { DisplayFiltersSelection, FiltersDropdown } from "@/components/issues/issue-layouts/filters";
 import { WorkItemFiltersRow } from "@/components/work-item-filters/filters-row";

@@ -7,14 +7,14 @@
 import { observer } from "mobx-react";
 import { useRouter } from "next/navigation";
 import { GitBranch as ParentPropertyIcon, MinusCircle, MoreHorizontal } from "@/components/icons/lucide-shim";
-import { useTranslation } from "@plane/i18n";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TIssue } from "@plane/types";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TIssue } from "@dragonfruit/types";
 // component
 // ui
-import { ControlLink, CustomMenu } from "@plane/ui";
+import { ControlLink, CustomMenu } from "@dragonfruit/ui";
 // helpers
-import { generateWorkItemLink } from "@plane/utils";
+import { generateWorkItemLink } from "@dragonfruit/utils";
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";

@@ -6,8 +6,8 @@
 
 import { useRef, useState } from "react";
 // DragonFruit
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IBlockUpdateDependencyData, IGanttBlock } from "@plane/types";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { IBlockUpdateDependencyData, IGanttBlock } from "@dragonfruit/types";
 // hooks
 import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
 //

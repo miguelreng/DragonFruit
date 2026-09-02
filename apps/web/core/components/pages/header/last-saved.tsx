@@ -7,7 +7,7 @@
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { Check } from "@/components/icons/lucide-shim";
-import { calculateTimeAgoShort } from "@plane/utils";
+import { calculateTimeAgoShort } from "@dragonfruit/utils";
 import type { TPageInstance } from "@/store/pages/base-page";
 
 type Props = {

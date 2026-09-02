@@ -8,8 +8,8 @@
 import { useCallback, useMemo } from "react";
 // types
 import { useParams } from "next/navigation";
-import type { TSupportedFilterTypeForUpdate } from "@plane/constants";
-import { EDraftIssuePaginationType } from "@plane/constants";
+import type { TSupportedFilterTypeForUpdate } from "@dragonfruit/constants";
+import { EDraftIssuePaginationType } from "@dragonfruit/constants";
 import type {
   IIssueDisplayFilterOptions,
   IIssueDisplayProperties,
@@ -19,8 +19,8 @@ import type {
   TLoader,
   TProfileViews,
   TSupportedFilterForUpdate,
-} from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
+} from "@dragonfruit/types";
+import { EIssuesStoreType } from "@dragonfruit/types";
 import { useIssues } from "./store/use-issues";
 
 export interface IssueActions {

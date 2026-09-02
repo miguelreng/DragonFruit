@@ -6,8 +6,8 @@
 
 import { observer } from "mobx-react";
 // ui
-import { MODULE_STATUS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { MODULE_STATUS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 import { CloseIcon, ModuleStatusIcon } from "@/components/icons/propel-shim";
 // constants
 

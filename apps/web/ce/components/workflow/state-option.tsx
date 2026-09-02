@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import { Combobox } from "@headlessui/react";
 import { CheckIcon } from "@/components/icons/propel-shim";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 
 export type TStateOptionProps = {
   projectId: string | null | undefined;

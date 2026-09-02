@@ -6,12 +6,12 @@
 
 import { Info } from "@/components/icons/lucide-shim";
 // plane imports
-import { EEstimateSystem, ESTIMATE_SYSTEMS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TEstimateSystemKeys } from "@plane/types";
+import { EEstimateSystem, ESTIMATE_SYSTEMS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TEstimateSystemKeys } from "@dragonfruit/types";
 // components
-import { convertMinutesToHoursMinutesString } from "@plane/utils";
+import { convertMinutesToHoursMinutesString } from "@dragonfruit/utils";
 // plane web imports
 import { isEstimateSystemEnabled } from "@/plane-web/components/estimates/helper";
 import { UpgradeBadge } from "@/plane-web/components/workspace/upgrade-badge";

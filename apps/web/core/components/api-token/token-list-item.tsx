@@ -7,10 +7,10 @@
 import { useState } from "react";
 import { XCircle } from "@/components/icons/lucide-shim";
 // plane imports
-import { PROFILE_SETTINGS_TRACKER_ELEMENTS } from "@plane/constants";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { IApiToken } from "@plane/types";
-import { renderFormattedDate, calculateTimeAgo, renderFormattedTime } from "@plane/utils";
+import { PROFILE_SETTINGS_TRACKER_ELEMENTS } from "@dragonfruit/constants";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { IApiToken } from "@dragonfruit/types";
+import { renderFormattedDate, calculateTimeAgo, renderFormattedTime } from "@dragonfruit/utils";
 // components
 import { DeleteApiTokenModal } from "@/components/api-token/delete-token-modal";
 // hooks

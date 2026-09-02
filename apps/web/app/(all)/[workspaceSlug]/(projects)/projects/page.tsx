@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import { ContentWrapper } from "@/components/core/content-wrapper";
 import { PageHead } from "@/components/core/page-title";
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { ProjectRoot } from "@/components/project/root";
 

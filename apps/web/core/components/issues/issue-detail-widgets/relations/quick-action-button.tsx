@@ -8,10 +8,10 @@ import React from "react";
 import { observer } from "mobx-react";
 import { Plus as PlusIcon } from "@/components/icons/lucide-shim";
 
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 // plane imports
-import type { TIssueServiceType } from "@plane/types";
-import { CustomMenu } from "@plane/ui";
+import type { TIssueServiceType } from "@dragonfruit/types";
+import { CustomMenu } from "@dragonfruit/ui";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 // DragonFruit-web

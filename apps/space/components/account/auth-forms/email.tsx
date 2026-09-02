@@ -10,13 +10,13 @@ import { observer } from "mobx-react";
 // icons
 import { DangerCircle as CircleAlert, CloseCircle as XCircle } from "@solar-icons/react/ssr";
 // types
-import { Button } from "@plane/propel/button";
-import type { IEmailCheckData } from "@plane/types";
+import { Button } from "@dragonfruit/propel/button";
+import type { IEmailCheckData } from "@dragonfruit/types";
 // ui
-import { Input } from "@plane/ui";
-import { Spinner } from "@plane/propel/spinners";
+import { Input } from "@dragonfruit/ui";
+import { Spinner } from "@dragonfruit/propel/spinners";
 // helpers
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 import { checkEmailValidity } from "@/helpers/string.helper";
 
 type TAuthEmailForm = {

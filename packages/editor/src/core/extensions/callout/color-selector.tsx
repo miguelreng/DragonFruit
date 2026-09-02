@@ -4,11 +4,11 @@
  * See the LICENSE file for details.
  */
 
-import { Ban } from "@plane/icons";
-import { IconButton } from "@plane/propel/icon-button";
-import { ChevronDownIcon } from "@plane/propel/icons";
+import { Ban } from "@dragonfruit/icons";
+import { IconButton } from "@dragonfruit/propel/icon-button";
+import { ChevronDownIcon } from "@dragonfruit/propel/icons";
 // plane utils
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // constants
 import { COLORS_LIST } from "@/constants/common";
 

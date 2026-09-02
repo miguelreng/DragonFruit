@@ -7,13 +7,13 @@
 import type { RefObject } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { ETabIndices } from "@plane/constants";
-import type { EditorRefApi } from "@plane/editor";
-import { useTranslation } from "@plane/i18n";
-import type { TIssue } from "@plane/types";
-import { EFileAssetType } from "@plane/types";
-import { Loader } from "@plane/ui";
-import { getDescriptionPlaceholderI18n, getTabIndex } from "@plane/utils";
+import { ETabIndices } from "@dragonfruit/constants";
+import type { EditorRefApi } from "@dragonfruit/editor";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { TIssue } from "@dragonfruit/types";
+import { EFileAssetType } from "@dragonfruit/types";
+import { Loader } from "@dragonfruit/ui";
+import { getDescriptionPlaceholderI18n, getTabIndex } from "@dragonfruit/utils";
 // components
 import { RichTextEditor } from "@/components/editor/rich-text/editor";
 // hooks

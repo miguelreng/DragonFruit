@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { GROUPED_WORKSPACE_SETTINGS, PROFILE_SETTINGS, PROJECT_SETTINGS_FLAT_MAP } from "@plane/constants";
-import type { TProfileSettingsTabs } from "@plane/types";
+import { GROUPED_WORKSPACE_SETTINGS, PROFILE_SETTINGS, PROJECT_SETTINGS_FLAT_MAP } from "@dragonfruit/constants";
+import type { TProfileSettingsTabs } from "@dragonfruit/types";
 
 const hrefToLabelMap = (options: Record<string, Array<{ href: string; i18n_label: string; [key: string]: any }>>) =>
   Object.values(options)

@@ -5,10 +5,10 @@
  */
 
 import { useEffect, useState } from "react";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-import type { TPageTemplate, TPageTemplateDetail } from "@plane/types";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
+import type { TPageTemplate, TPageTemplateDetail } from "@dragonfruit/types";
 import { X } from "@/components/icons/lucide-shim";
 import { PageTemplateService } from "@/services/page/page-template.service";
 

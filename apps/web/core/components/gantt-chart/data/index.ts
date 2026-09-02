@@ -5,8 +5,8 @@
  */
 
 // types
-import type { WeekMonthDataType, ChartDataType, TGanttViews } from "@plane/types";
-import { EStartOfTheWeek } from "@plane/types";
+import type { WeekMonthDataType, ChartDataType, TGanttViews } from "@dragonfruit/types";
+import { EStartOfTheWeek } from "@dragonfruit/types";
 
 // constants
 export const generateWeeks = (startOfWeek: EStartOfTheWeek = EStartOfTheWeek.SUNDAY): WeekMonthDataType[] => [

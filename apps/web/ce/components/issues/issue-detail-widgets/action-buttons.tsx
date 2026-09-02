@@ -5,7 +5,7 @@
  */
 
 // plane types
-import type { TIssueServiceType, TWorkItemWidgets } from "@plane/types";
+import type { TIssueServiceType, TWorkItemWidgets } from "@dragonfruit/types";
 
 export type TWorkItemAdditionalWidgetActionButtonsProps = {
   disabled: boolean;

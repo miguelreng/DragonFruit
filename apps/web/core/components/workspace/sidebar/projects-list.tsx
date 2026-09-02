@@ -11,14 +11,14 @@ import { observer } from "mobx-react";
 import { useParams, usePathname } from "next/navigation";
 import { Disclosure, Transition } from "@headlessui/react";
 // plane imports
-import { EUserPermissions, EUserPermissionsLevel, PROJECT_TRACKER_ELEMENTS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { EUserPermissions, EUserPermissionsLevel, PROJECT_TRACKER_ELEMENTS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 import { PlusIcon, ChevronRightIcon } from "@/components/icons/propel-shim";
-import { IconButton } from "@plane/propel/icon-button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import { Loader } from "@plane/ui";
-import { copyUrlToClipboard, cn, orderJoinedProjects } from "@plane/utils";
+import { IconButton } from "@dragonfruit/propel/icon-button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { Loader } from "@dragonfruit/ui";
+import { copyUrlToClipboard, cn, orderJoinedProjects } from "@dragonfruit/utils";
 // components
 import { CreateProjectModal } from "@/components/project/create-project-modal";
 // hooks

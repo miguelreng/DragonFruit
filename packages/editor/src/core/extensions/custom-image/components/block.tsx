@@ -7,7 +7,7 @@
 import { NodeSelection } from "@tiptap/pm/state";
 import React, { useRef, useState, useCallback, useLayoutEffect, useEffect } from "react";
 // plane imports
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // local imports
 import { ECustomImageAttributeNames } from "../types";
 import type { Pixel, TCustomImageAttributes, TCustomImageSize } from "../types";

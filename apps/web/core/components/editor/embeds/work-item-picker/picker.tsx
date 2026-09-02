@@ -8,11 +8,11 @@ import { observer } from "mobx-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Plus, Search } from "@/components/icons/lucide-shim";
 // plane imports
-import type { TIssueSearchResponse, TSearchEntityRequestPayload, TSearchResponse } from "@plane/types";
-import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-import { cn } from "@plane/utils";
+import type { TIssueSearchResponse, TSearchEntityRequestPayload, TSearchResponse } from "@dragonfruit/types";
+import { EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 // plane editor
-import type { TWorkItemEmbedInsertAttrs, TWorkItemPickerMode } from "@plane/editor";
+import type { TWorkItemEmbedInsertAttrs, TWorkItemPickerMode } from "@dragonfruit/editor";
 // services
 import { IssueService } from "@/services/issue";
 // hooks

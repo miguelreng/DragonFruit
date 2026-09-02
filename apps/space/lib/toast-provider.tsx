@@ -6,8 +6,8 @@
 
 import { useTheme } from "next-themes";
 // plane imports
-import { Toast } from "@plane/propel/toast";
-import { resolveGeneralTheme } from "@plane/utils";
+import { Toast } from "@dragonfruit/propel/toast";
+import { resolveGeneralTheme } from "@dragonfruit/utils";
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   // themes

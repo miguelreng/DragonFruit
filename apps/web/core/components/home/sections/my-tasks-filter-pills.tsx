@@ -7,9 +7,9 @@
 import { useEffect } from "react";
 import { observer } from "mobx-react";
 import { useSearchParams } from "react-router";
-import type { TBaseIssue } from "@plane/types";
-import { getButtonStyling } from "@plane/propel/button";
-import { cn } from "@plane/utils";
+import type { TBaseIssue } from "@dragonfruit/types";
+import { getButtonStyling } from "@dragonfruit/propel/button";
+import { cn } from "@dragonfruit/utils";
 import { useLabel } from "@/hooks/store/use-label";
 import { useProjectState } from "@/hooks/store/use-project-state";
 import { isOpenIssue, useMyTasksData } from "./use-my-tasks";

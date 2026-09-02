@@ -5,9 +5,9 @@
  */
 
 import { ArchiveIcon, Earth } from "@/components/icons/lucide-shim";
-import { EPageAccess } from "@plane/constants";
+import { EPageAccess } from "@dragonfruit/constants";
 import { LockIcon } from "@/components/icons/propel-shim";
-import type { TPage } from "@plane/types";
+import type { TPage } from "@dragonfruit/types";
 
 export function PageAccessIcon(page: TPage) {
   return (

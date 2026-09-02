@@ -8,9 +8,9 @@ import { useMemo } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
-import type { IIssueDisplayProperties, IProjectCustomField, TIssue } from "@plane/types";
-import { CustomMenu } from "@plane/ui";
-import { cn } from "@plane/utils";
+import type { IIssueDisplayProperties, IProjectCustomField, TIssue } from "@dragonfruit/types";
+import { CustomMenu } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 // components
 import { CheckIcon } from "@/components/icons/propel-shim";
 // helpers

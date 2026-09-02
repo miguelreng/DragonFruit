@@ -5,16 +5,16 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { EPageAccess } from "@plane/constants";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { EPageAccess } from "@dragonfruit/constants";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 import { FileText, FolderPlus, X } from "@/components/icons/lucide-shim";
 import { ProjectPageService } from "@/services/page/project-page.service";
 import { getImportErrorMessage } from "./markdown-doc";
 import { planWikiImport, type TWikiImportDraft } from "./wiki-import-planner";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 const pageService = new ProjectPageService();
 

@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 // plane imports
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // assets
 // components
 import { EmptyState } from "@/components/common/empty-state";

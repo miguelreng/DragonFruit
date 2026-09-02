@@ -13,8 +13,8 @@ import type {
   TFilterExpression,
   TFilterProperty,
   TFilterValue,
-} from "@plane/types";
-import { FILTER_NODE_TYPE, LOGICAL_OPERATOR } from "@plane/types";
+} from "@dragonfruit/types";
+import { FILTER_NODE_TYPE, LOGICAL_OPERATOR } from "@dragonfruit/types";
 
 /**
  * Creates a condition node with a unique ID.

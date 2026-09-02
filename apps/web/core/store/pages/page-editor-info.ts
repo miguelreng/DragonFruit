@@ -6,7 +6,7 @@
 
 import { action, makeObservable, observable, runInAction } from "mobx";
 // plane imports
-import type { EditorRefApi, EditorTitleRefApi, TEditorAsset } from "@plane/editor";
+import type { EditorRefApi, EditorTitleRefApi, TEditorAsset } from "@dragonfruit/editor";
 
 export type TAtlasReviewPhase =
   | "idle"

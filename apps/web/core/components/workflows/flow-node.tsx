@@ -5,7 +5,7 @@
  */
 
 import type { ReactNode } from "react";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 import type { TWorkflowNodeKind } from "@/services/workflow.service";
 import { NODE_KIND_ACCENTS } from "./builder-helpers";
 

@@ -6,9 +6,9 @@
 
 import { useState, useEffect } from "react";
 // plane imports
-// import { useTranslation } from "@plane/i18n";
-import type { TIssueEntityData, TIssueSearchResponse, TActivityEntityData } from "@plane/types";
-// import { generateWorkItemLink } from "@plane/utils";
+// import { useTranslation } from "@dragonfruit/i18n";
+import type { TIssueEntityData, TIssueSearchResponse, TActivityEntityData } from "@dragonfruit/types";
+// import { generateWorkItemLink } from "@dragonfruit/utils";
 // components
 // import { CommandPaletteEntityList } from "@/components/command-palette";
 // import { SimpleEmptyState } from "@/components/empty-state/simple-empty-state-root";

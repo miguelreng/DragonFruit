@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { API_BASE_URL } from "@plane/constants";
-import type { IProjectCustomField } from "@plane/types";
+import { API_BASE_URL } from "@dragonfruit/constants";
+import type { IProjectCustomField } from "@dragonfruit/types";
 import { APIService } from "@/services/api.service";
 
 export class ProjectCustomFieldService extends APIService {

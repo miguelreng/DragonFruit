@@ -10,9 +10,9 @@ import { Controller, useForm } from "react-hook-form";
 import { usePopper } from "react-popper";
 import { Loader, Plus, X } from "@/components/icons/lucide-shim";
 import { Popover } from "@headlessui/react";
-import type { IIssueLabel } from "@plane/types";
+import type { IIssueLabel } from "@dragonfruit/types";
 // hooks
-import { Input } from "@plane/ui";
+import { Input } from "@dragonfruit/ui";
 // ui
 // types
 import type { TLabelOperations } from "./root";

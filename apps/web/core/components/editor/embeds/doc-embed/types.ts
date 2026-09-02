@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { IProjectView, TPage, TSticky } from "@plane/types";
+import type { IProjectView, TPage, TSticky } from "@dragonfruit/types";
 
 export type TDocEmbedSourceType = "whiteboard" | "sticky" | "task_view" | "google_drive" | "page";
 

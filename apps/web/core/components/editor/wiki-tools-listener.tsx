@@ -5,8 +5,8 @@
  */
 
 import { useEffect } from "react";
-import type { TCitationCheckResult } from "@plane/editor";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import type { TCitationCheckResult } from "@dragonfruit/editor";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
 
 /**
  * Surfaces results of the editor's Wikipedia tools (/link-terms and

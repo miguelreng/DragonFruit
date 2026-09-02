@@ -8,7 +8,7 @@ import React from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
-import type { EIssuesStoreType, TIssue } from "@plane/types";
+import type { EIssuesStoreType, TIssue } from "@dragonfruit/types";
 // plane web imports
 import { IssueModalProvider } from "@/plane-web/components/issues/issue-modal/provider";
 import { CreateUpdateIssueModalBase } from "./base";

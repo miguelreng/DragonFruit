@@ -7,12 +7,12 @@
 import React, { useMemo } from "react";
 import { useTheme } from "next-themes";
 // plane imports
-import { CHART_COLOR_PALETTES } from "@plane/constants";
-import { AreaChart } from "@plane/propel/charts/area-chart";
-import { BarChart } from "@plane/propel/charts/bar-chart";
-import { LineChart } from "@plane/propel/charts/line-chart";
-import { PieChart } from "@plane/propel/charts/pie-chart";
-import type { TAreaItem, TBarItem, TCellItem, TChartLegend, TLineItem } from "@plane/types";
+import { CHART_COLOR_PALETTES } from "@dragonfruit/constants";
+import { AreaChart } from "@dragonfruit/propel/charts/area-chart";
+import { BarChart } from "@dragonfruit/propel/charts/bar-chart";
+import { LineChart } from "@dragonfruit/propel/charts/line-chart";
+import { PieChart } from "@dragonfruit/propel/charts/pie-chart";
+import type { TAreaItem, TBarItem, TCellItem, TChartLegend, TLineItem } from "@dragonfruit/types";
 // local imports
 import type { TChartSpec } from "./spec";
 import { generateExtendedColors } from "./utils";

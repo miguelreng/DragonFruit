@@ -5,11 +5,11 @@
  */
 
 import { useMemo, type ReactNode, type SVGProps } from "react";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 import Link from "next/link";
-import type { IIssueLabel } from "@plane/types";
-import { CustomSelect, CustomSearchSelect } from "@plane/ui";
-import { cn } from "@plane/utils";
+import type { IIssueLabel } from "@dragonfruit/types";
+import { CustomSelect, CustomSearchSelect } from "@dragonfruit/ui";
+import { cn } from "@dragonfruit/utils";
 import type { TMcpServerSummary } from "@/services/agent.service";
 import type { TWorkflowNode } from "@/services/workflow.service";
 import type { TPartialProject } from "@/plane-web/types";

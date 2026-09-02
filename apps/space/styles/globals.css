@@ -1,6 +1,6 @@
-@import "@plane/tailwind-config/index.css";
-@import "@plane/editor/styles";
-@import "@plane/propel/styles/react-day-picker.css";
+@import "@dragonfruit/tailwind-config/index.css";
+@import "@dragonfruit/editor/styles";
+@import "@dragonfruit/propel/styles/react-day-picker.css";
 @plugin "@tailwindcss/typography";
 
 /* Figtree — self-hosted variable font served from /public/fonts. */

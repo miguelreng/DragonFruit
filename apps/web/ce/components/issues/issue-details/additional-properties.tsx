@@ -6,15 +6,15 @@
 
 import React from "react";
 import { observer } from "mobx-react";
-import type { IProjectCustomField } from "@plane/types";
+import type { IProjectCustomField } from "@dragonfruit/types";
 import { Plus, Pencil, Trash2, Hash } from "@/components/icons/lucide-shim";
 import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
 import { CreateUpdateCustomFieldModal } from "@/components/custom-fields";
 import { useProjectCustomFields } from "@/hooks/use-project-custom-fields";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { ProjectCustomFieldService } from "@/services/project";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { CustomSelect } from "@plane/ui";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { CustomSelect } from "@dragonfruit/ui";
 
 export type TWorkItemAdditionalSidebarProperties = {
   workItemId: string;

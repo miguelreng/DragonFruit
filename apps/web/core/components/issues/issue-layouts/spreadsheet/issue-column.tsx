@@ -7,7 +7,7 @@
 import { useCallback, useMemo, useRef } from "react";
 import { observer } from "mobx-react";
 // types
-import type { IIssueDisplayProperties, TIssue } from "@plane/types";
+import type { IIssueDisplayProperties, TIssue } from "@dragonfruit/types";
 // components
 import { SPREADSHEET_COLUMNS } from "@/plane-web/components/issues/issue-layouts/utils";
 import { shouldRenderColumn } from "@/helpers/issue-filter.helper";

@@ -5,10 +5,10 @@
  */
 
 import { observer } from "mobx-react";
-import { MODULE_VIEW_LAYOUTS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { MODULE_VIEW_LAYOUTS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 import { ChevronDownIcon } from "@/components/icons/propel-shim";
-import { CustomMenu, Row } from "@plane/ui";
+import { CustomMenu, Row } from "@dragonfruit/ui";
 import { ModuleLayoutIcon } from "@/components/modules";
 import { useModuleFilter } from "@/hooks/store/use-module-filter";
 import { useProject } from "@/hooks/store/use-project";

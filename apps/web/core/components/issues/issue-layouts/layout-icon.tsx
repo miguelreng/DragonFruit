@@ -10,7 +10,7 @@ import type { SVGProps } from "react";
 // so two view-switcher buttons rendered identically.)
 import type { IconWeight } from "@solar-icons/react";
 import { List, Widget, Calendar, ServerSquare, SortHorizontal } from "@solar-icons/react/ssr";
-import { EIssueLayoutTypes } from "@plane/types";
+import { EIssueLayoutTypes } from "@dragonfruit/types";
 
 const LAYOUT_ICON: Record<EIssueLayoutTypes, typeof List> = {
   [EIssueLayoutTypes.LIST]: List,

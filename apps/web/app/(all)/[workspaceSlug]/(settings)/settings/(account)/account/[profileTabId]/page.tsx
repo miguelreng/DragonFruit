@@ -8,9 +8,9 @@ import { Suspense } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "react-router";
 // plane imports
-import { PROFILE_SETTINGS_TABS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import type { TProfileSettingsTabs } from "@plane/types";
+import { PROFILE_SETTINGS_TABS } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { TProfileSettingsTabs } from "@dragonfruit/types";
 // components
 import { AppLoadingScreen } from "@/components/common/app-loading-screen";
 import { PageHead } from "@/components/core/page-title";

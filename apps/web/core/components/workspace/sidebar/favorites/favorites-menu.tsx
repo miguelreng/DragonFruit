@@ -17,15 +17,15 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { FolderPlus } from "@/components/icons/lucide-shim";
 import { Disclosure, Transition } from "@headlessui/react";
-import { IS_FAVORITE_MENU_OPEN } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { IS_FAVORITE_MENU_OPEN } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 import { ChevronRightIcon } from "@/components/icons/propel-shim";
 // ui
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { IFavorite } from "@plane/types";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { IFavorite } from "@dragonfruit/types";
 // helpers
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // hooks
 import { useFavorite } from "@/hooks/store/use-favorite";
 import useLocalStorage from "@/hooks/use-local-storage";
@@ -35,7 +35,7 @@ import { FavoriteRoot } from "./favorite-items";
 import type { TargetData } from "./favorites.helpers";
 import { getInstructionFromPayload } from "./favorites.helpers";
 import { NewFavoriteFolder } from "./new-fav-folder";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 export const SidebarFavoritesMenu = observer(function SidebarFavoritesMenu() {
   // states

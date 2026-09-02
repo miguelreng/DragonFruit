@@ -7,12 +7,12 @@
 import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import type { EditorRefApi } from "@plane/editor";
+import type { EditorRefApi } from "@dragonfruit/editor";
 import { CornerDownRight } from "@/components/icons/lucide-shim";
-import { Avatar } from "@plane/ui";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TCommentsOperations } from "@plane/types";
-import { calculateTimeAgo, cn, getFileURL, renderFormattedDate, renderFormattedTime } from "@plane/utils";
+import { Avatar } from "@dragonfruit/ui";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TCommentsOperations } from "@dragonfruit/types";
+import { calculateTimeAgo, cn, getFileURL, renderFormattedDate, renderFormattedTime } from "@dragonfruit/utils";
 // components
 import { LiteTextEditor } from "@/components/editor/lite-text";
 // hooks

@@ -1,4 +1,4 @@
-import { getPublicApiBaseUrl } from "@plane/constants";
+import { getPublicApiBaseUrl } from "@dragonfruit/constants";
 import { describe, expect, it } from "vitest";
 
 describe("public API URL", () => {

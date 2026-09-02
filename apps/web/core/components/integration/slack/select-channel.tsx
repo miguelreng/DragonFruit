@@ -9,9 +9,9 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR, { mutate } from "swr";
 // types
-import type { IWorkspaceIntegration, ISlackIntegration } from "@plane/types";
+import type { IWorkspaceIntegration, ISlackIntegration } from "@dragonfruit/types";
 // ui
-import { Loader } from "@plane/ui";
+import { Loader } from "@dragonfruit/ui";
 // fetch-keys
 import { SLACK_CHANNEL_INFO } from "@/constants/fetch-keys";
 // hooks

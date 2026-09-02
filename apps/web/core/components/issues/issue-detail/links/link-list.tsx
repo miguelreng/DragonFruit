@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 // plane imports
-import type { TIssueServiceType } from "@plane/types";
+import type { TIssueServiceType } from "@dragonfruit/types";
 // computed
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 // local imports

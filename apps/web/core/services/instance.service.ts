@@ -5,8 +5,8 @@
  */
 
 // types
-import { getPublicApiBaseUrl } from "@plane/constants";
-import type { IInstanceInfo } from "@plane/types";
+import { getPublicApiBaseUrl } from "@dragonfruit/constants";
+import type { IInstanceInfo } from "@dragonfruit/types";
 // helpers
 // services
 import { APIService } from "@/services/api.service";

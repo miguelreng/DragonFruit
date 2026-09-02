@@ -8,9 +8,9 @@ import { Menu } from "@headlessui/react";
 import * as React from "react";
 import ReactDOM from "react-dom";
 import { usePopper } from "react-popper";
-import { useOutsideClickDetector } from "@plane/hooks";
+import { useOutsideClickDetector } from "@dragonfruit/hooks";
 import { MenuDots } from "@solar-icons/react/ssr";
-import { ChevronDownIcon, ChevronRightIcon } from "@plane/propel/icons";
+import { ChevronDownIcon, ChevronRightIcon } from "@dragonfruit/propel/icons";
 // plane helpers
 // helpers
 import { useDropdownKeyDown } from "../hooks/use-dropdown-key-down";

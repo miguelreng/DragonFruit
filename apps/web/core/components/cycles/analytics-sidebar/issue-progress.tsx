@@ -10,11 +10,11 @@ import { observer } from "mobx-react";
 import { useSearchParams } from "next/navigation";
 import { Disclosure, Transition } from "@headlessui/react";
 // plane imports
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { ChevronUpIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
-import type { ICycle, TCyclePlotType, TProgressSnapshot } from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
-import { getDate } from "@plane/utils";
+import type { ICycle, TCyclePlotType, TProgressSnapshot } from "@dragonfruit/types";
+import { EIssuesStoreType } from "@dragonfruit/types";
+import { getDate } from "@dragonfruit/utils";
 // hooks
 import { useCycle } from "@/hooks/store/use-cycle";
 // plane web components

@@ -7,11 +7,11 @@
 import React from "react";
 // types
 import { CycleGroupIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
-import type { TCycleGroups } from "@plane/types";
+import type { TCycleGroups } from "@dragonfruit/types";
 // icons
-import { Row } from "@plane/ui";
+import { Row } from "@dragonfruit/ui";
 // helpers
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 
 type Props = {
   type: TCycleGroups;

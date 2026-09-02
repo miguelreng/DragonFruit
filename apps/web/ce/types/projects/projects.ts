@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { IPartialProject, IProject } from "@plane/types";
+import type { IPartialProject, IProject } from "@dragonfruit/types";
 
 export type TPartialProject = IPartialProject;
 

@@ -11,13 +11,13 @@ import { Rocket } from "@/components/icons/lucide-shim";
 // headless ui
 import { Combobox } from "@headlessui/react";
 // i18n
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { SearchIcon } from "@/components/icons/propel-shim";
 // types
-import type { ISearchIssueResponse } from "@plane/types";
+import type { ISearchIssueResponse } from "@dragonfruit/types";
 // ui
-import { Loader, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-import { generateWorkItemLink, getTabIndex } from "@plane/utils";
+import { Loader, EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
+import { generateWorkItemLink, getTabIndex } from "@dragonfruit/utils";
 // components
 import { IssueSearchModalEmptyState } from "@/components/core/modals/issue-search-modal-empty-state";
 // helpers

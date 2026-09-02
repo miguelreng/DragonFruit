@@ -9,10 +9,10 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { Download } from "@/components/icons/lucide-shim";
 // plane imports
-import { CORE_EXTENSIONS } from "@plane/editor";
-import type { TEditorAsset } from "@plane/editor";
-import { useTranslation } from "@plane/i18n";
-import { getEditorAssetDownloadSrc, getEditorAssetSrc } from "@plane/utils";
+import { CORE_EXTENSIONS } from "@dragonfruit/editor";
+import type { TEditorAsset } from "@dragonfruit/editor";
+import { useTranslation } from "@dragonfruit/i18n";
+import { getEditorAssetDownloadSrc, getEditorAssetSrc } from "@dragonfruit/utils";
 // plane web imports
 import { AdditionalPageNavigationPaneAssetItem } from "@/plane-web/components/pages/navigation-pane/tab-panels/assets";
 import { PageNavigationPaneAssetsTabEmptyState } from "@/plane-web/components/pages/navigation-pane/tab-panels/empty-states/assets";

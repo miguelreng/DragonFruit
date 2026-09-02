@@ -7,10 +7,10 @@
 // hoc/withDockItems.tsx
 import React from "react";
 import { observer } from "mobx-react";
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { useParams, usePathname } from "next/navigation";
-import { EUserPermissionsLevel, WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS } from "@plane/constants";
-import { joinUrlPath } from "@plane/utils";
+import { EUserPermissionsLevel, WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS } from "@dragonfruit/constants";
+import { joinUrlPath } from "@dragonfruit/utils";
 import type { AppSidebarItemData } from "@/components/sidebar/sidebar-item";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
 import { getSidebarNavigationItemIcon } from "@/plane-web/components/workspace/sidebar/helper";
@@ -65,7 +65,7 @@ export function withDockItems<P extends WithDockItemsProps>(WrappedComponent: Re
     }, []);
 
     // Workflows is a DragonFruit-only surface (Atlas automations / apps / actions),
-    // so it's built inline here rather than in the shared @plane/constants nav map.
+    // so it's built inline here rather than in the shared @dragonfruit/constants nav map.
     if (slug) {
       const workflowsHref = `/${slug}/workflows`;
       dockItems.push({

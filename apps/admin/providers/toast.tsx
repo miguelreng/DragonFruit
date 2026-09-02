@@ -6,8 +6,8 @@
 
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
-import { Toast } from "@plane/propel/toast";
-import { resolveGeneralTheme } from "@plane/utils";
+import { Toast } from "@dragonfruit/propel/toast";
+import { resolveGeneralTheme } from "@dragonfruit/utils";
 
 export function ToastWithTheme() {
   const { resolvedTheme } = useTheme();

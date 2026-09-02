@@ -5,7 +5,7 @@
  */
 
 // editor
-import type { TExtensions } from "@plane/editor";
+import type { TExtensions } from "@dragonfruit/editor";
 import type { EPageStoreType } from "@/plane-web/hooks/store";
 
 export type TEditorFlaggingHookReturnType = {

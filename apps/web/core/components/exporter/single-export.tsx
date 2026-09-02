@@ -6,10 +6,10 @@
 
 import { useState } from "react";
 // ui
-import { Button } from "@plane/propel/button";
-import type { IExportData } from "@plane/types";
+import { Button } from "@dragonfruit/propel/button";
+import type { IExportData } from "@dragonfruit/types";
 // helpers
-import { getDate, renderFormattedDate } from "@plane/utils";
+import { getDate, renderFormattedDate } from "@dragonfruit/utils";
 // types
 
 type Props = {

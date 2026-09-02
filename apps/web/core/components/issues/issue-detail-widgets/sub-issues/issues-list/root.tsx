@@ -7,10 +7,10 @@
 import { useCallback, useMemo } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { WorkItemsIcon } from "@/components/icons/propel-shim";
-import type { GroupByColumnTypes, TIssue, TIssueServiceType, TSubIssueOperations } from "@plane/types";
-import { EIssueServiceType, EIssuesStoreType } from "@plane/types";
+import type { GroupByColumnTypes, TIssue, TIssueServiceType, TSubIssueOperations } from "@dragonfruit/types";
+import { EIssueServiceType, EIssuesStoreType } from "@dragonfruit/types";
 // hooks
 import { SectionEmptyState } from "@/components/empty-state/section-empty-state-root";
 import { getGroupByColumns, isWorkspaceLevel } from "@/components/issues/issue-layouts/utils";

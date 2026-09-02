@@ -7,15 +7,15 @@
 /* eslint-disable no-await-in-loop, react/no-array-index-key */
 
 import { observer } from "mobx-react";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getRandomLabelColor } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { EPillSize, EPillVariant, Pill } from "@plane/propel/pill";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { CustomSearchSelect, CustomSelect, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-import type { IIssueLabel, IProjectCustomField, IState } from "@plane/types";
+import { getRandomLabelColor } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { EPillSize, EPillVariant, Pill } from "@dragonfruit/propel/pill";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { CustomSearchSelect, CustomSelect, EModalPosition, EModalWidth, ModalCore } from "@dragonfruit/ui";
+import type { IIssueLabel, IProjectCustomField, IState } from "@dragonfruit/types";
 import { FileText, Plus, UploadCloud, X, Trash2 } from "@/components/icons/lucide-shim";
 import { CreateUpdateCustomFieldModal } from "@/components/custom-fields";
 import { useProjectCustomFields } from "@/hooks/use-project-custom-fields";

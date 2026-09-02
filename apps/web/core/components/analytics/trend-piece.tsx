@@ -7,7 +7,7 @@
 // plane package imports
 import React from "react";
 import { TrendingDown, TrendingUp } from "@/components/icons/lucide-shim";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // plane web components
 
 type Props = {

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { API_BASE_URL } from "@plane/constants";
+import { API_BASE_URL } from "@dragonfruit/constants";
 import type { Content } from "@tiptap/core";
 // services
 import { APIService } from "@/services/api.service";

@@ -19,8 +19,8 @@ import {
   Users as MembersPropertyIcon,
 } from "@/components/icons/lucide-shim";
 // i18n
-import { useTranslation } from "@plane/i18n";
-import { cn, getDate, renderFormattedPayloadDate, shouldHighlightIssueDueDate } from "@plane/utils";
+import { useTranslation } from "@dragonfruit/i18n";
+import { cn, getDate, renderFormattedPayloadDate, shouldHighlightIssueDueDate } from "@dragonfruit/utils";
 // components
 import { DateDropdown } from "@/components/dropdowns/date";
 import { EstimateDropdown } from "@/components/dropdowns/estimate";

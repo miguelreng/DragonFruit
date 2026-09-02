@@ -6,13 +6,13 @@
 
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { NodeViewWrapper, NodeViewContent } from "@tiptap/react";
-import { CheckIcon } from "@plane/icons";
+import { CheckIcon } from "@dragonfruit/icons";
 import { useState } from "react";
-import { CopyIcon } from "@plane/propel/icons";
+import { CopyIcon } from "@dragonfruit/propel/icons";
 // ui
-import { Tooltip } from "@plane/propel/tooltip";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 // plane utils
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // types
 import type { TCodeBlockAttributes } from "./types";
 import { ECodeBlockAttributeNames } from "./types";

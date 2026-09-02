@@ -5,8 +5,8 @@
  */
 
 import { observer } from "mobx-react";
-import { useTranslation } from "@plane/i18n";
-import { CloseIcon } from "@plane/propel/icons";
+import { useTranslation } from "@dragonfruit/i18n";
+import { CloseIcon } from "@dragonfruit/propel/icons";
 // types
 import type { TFilters } from "@/types/issue";
 // components

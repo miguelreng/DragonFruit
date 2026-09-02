@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 import { observer } from "mobx-react";
 import { useTheme } from "next-themes";
 import { Moon, Sun } from "@solar-icons/react/ssr";

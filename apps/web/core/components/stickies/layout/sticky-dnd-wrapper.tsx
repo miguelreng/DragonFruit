@@ -17,11 +17,11 @@ import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/el
 import { attachInstruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/tree-item";
 import { observer } from "mobx-react";
 // plane types
-import type { InstructionType } from "@plane/types";
+import type { InstructionType } from "@dragonfruit/types";
 // plane ui
-import { DropIndicator } from "@plane/ui";
+import { DropIndicator } from "@dragonfruit/ui";
 // plane utils
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // components
 import { StickyNote } from "../sticky";
 // helpers

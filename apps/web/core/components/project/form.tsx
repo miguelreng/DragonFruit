@@ -7,16 +7,16 @@
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Info } from "@/components/icons/lucide-shim";
-import { NETWORK_CHOICES } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { NETWORK_CHOICES } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
 // plane imports
-import { Button } from "@plane/propel/button";
-import { EmojiPicker, EmojiIconPickerTypes, Logo } from "@plane/propel/emoji-icon-picker";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { IProject, IWorkspace } from "@plane/types";
-import { CustomSelect, Input, TextArea } from "@plane/ui";
-import { renderFormattedDate } from "@plane/utils";
+import { Button } from "@dragonfruit/propel/button";
+import { EmojiPicker, EmojiIconPickerTypes, Logo } from "@dragonfruit/propel/emoji-icon-picker";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { IProject, IWorkspace } from "@dragonfruit/types";
+import { CustomSelect, Input, TextArea } from "@dragonfruit/ui";
+import { renderFormattedDate } from "@dragonfruit/utils";
 import { TimezoneSelect } from "@/components/global";
 // hooks
 import { useProject } from "@/hooks/store/use-project";

@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { Download, X } from "@/components/icons/lucide-shim";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;

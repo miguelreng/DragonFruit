@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import useSWR from "swr";
 // plane imports
-import { getNumberCount } from "@plane/utils";
+import { getNumberCount } from "@dragonfruit/utils";
 // components
 import { CountChip } from "@/components/common/count-chip";
 // hooks

@@ -7,11 +7,11 @@
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
-import { EIssueFilterType, ISSUE_DISPLAY_FILTERS_BY_PAGE } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import type { IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
-import { EHeaderVariant, Header } from "@plane/ui";
+import { EIssueFilterType, ISSUE_DISPLAY_FILTERS_BY_PAGE } from "@dragonfruit/constants";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@dragonfruit/types";
+import { EIssuesStoreType } from "@dragonfruit/types";
+import { EHeaderVariant, Header } from "@dragonfruit/ui";
 // components
 import { ArchiveTabsList } from "@/components/archives";
 import { DisplayFiltersSelection, FiltersDropdown } from "@/components/issues/issue-layouts/filters";

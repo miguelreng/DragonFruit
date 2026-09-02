@@ -8,11 +8,11 @@ import { isNodeSelection } from "@tiptap/core";
 import type { Editor } from "@tiptap/core";
 import { BubbleMenu, useEditorState } from "@tiptap/react";
 import type { BubbleMenuProps } from "@tiptap/react";
-import { MessageCircle, Sparkles } from "@plane/icons";
+import { MessageCircle, Sparkles } from "@dragonfruit/icons";
 import { useEffect, useState, useRef } from "react";
 import { v4 as generateUuid } from "uuid";
 // plane utils
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // components
 import { GoogleLogo } from "@/components/logos";
 import type { EditorMenuItem } from "@/components/menus";
@@ -38,7 +38,7 @@ import type { IEditorPropsExtended, TEditorCommands, TExtensions } from "@/types
 // local imports
 import { TextAlignmentSelector } from "./alignment-selector";
 import { BubbleMenuLinkSelector } from "./link-selector";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 type EditorBubbleMenuProps = Omit<BubbleMenuProps, "children">;
 

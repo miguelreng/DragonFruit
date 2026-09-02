@@ -7,9 +7,9 @@
 import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { ListFilter, Search as SearchIcon, X as CloseIcon } from "@/components/icons/lucide-shim";
-import { useTranslation } from "@plane/i18n";
-import type { IIssueFilterOptions, IState } from "@plane/types";
-import { cn } from "@plane/utils";
+import { useTranslation } from "@dragonfruit/i18n";
+import type { IIssueFilterOptions, IState } from "@dragonfruit/types";
+import { cn } from "@dragonfruit/utils";
 import {
   FilterAssignees,
   FilterDueDate,

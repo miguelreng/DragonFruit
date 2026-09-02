@@ -6,11 +6,11 @@
 
 import { useCallback } from "react";
 import { PanelLeft } from "@/components/icons/lucide-shim";
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { LinkIcon, SearchIcon } from "@/components/icons/propel-shim";
 // plane imports
-import { setToast, TOAST_TYPE } from "@plane/propel/toast";
-import { copyTextToClipboard } from "@plane/utils";
+import { setToast, TOAST_TYPE } from "@dragonfruit/propel/toast";
+import { copyTextToClipboard } from "@dragonfruit/utils";
 // components
 import type { TPowerKCommandConfig } from "@/components/power-k/core/types";
 // hooks

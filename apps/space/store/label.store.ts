@@ -7,8 +7,8 @@
 import { set } from "lodash-es";
 import { action, computed, makeObservable, observable, runInAction } from "mobx";
 // plane imports
-import { SitesLabelService } from "@plane/services";
-import type { IIssueLabel } from "@plane/types";
+import { SitesLabelService } from "@dragonfruit/services";
+import type { IIssueLabel } from "@dragonfruit/types";
 // store
 import type { RootStore } from "./root.store";
 

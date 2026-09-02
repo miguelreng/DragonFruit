@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import { Circle } from "@/components/icons/lucide-shim";
 import { ChevronDownIcon, ChevronUpIcon } from "@/components/icons/propel-shim";
 // DragonFruit
-import type { TIssueGroupByOptions, TIssueKanbanFilters } from "@plane/types";
+import type { TIssueGroupByOptions, TIssueKanbanFilters } from "@dragonfruit/types";
 // DragonFruit-web
 import { WorkFlowGroupTree } from "@/plane-web/components/workflow";
 // mobx

@@ -8,9 +8,9 @@ import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 // ui
-import { MODULE_STATUS } from "@plane/constants";
+import { MODULE_STATUS } from "@dragonfruit/constants";
 import { ModuleStatusIcon } from "@/components/icons/propel-shim";
-import { Tooltip } from "@plane/propel/tooltip";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
 // components
 import { SIDEBAR_WIDTH } from "@/components/gantt-chart/constants";
 import { getBlockViewDetails } from "@/components/issues/issue-layouts/utils";

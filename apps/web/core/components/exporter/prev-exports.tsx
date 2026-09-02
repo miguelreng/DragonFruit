@@ -9,11 +9,11 @@ import { observer } from "mobx-react";
 import useSWR, { mutate } from "swr";
 import { MoveLeft, MoveRight, RefreshCw } from "@/components/icons/lucide-shim";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { EmptyStateCompact } from "@plane/propel/empty-state";
-import type { IExportData } from "@plane/types";
-import { Table } from "@plane/ui";
+import { useTranslation } from "@dragonfruit/i18n";
+import { Button } from "@dragonfruit/propel/button";
+import { EmptyStateCompact } from "@dragonfruit/propel/empty-state";
+import type { IExportData } from "@dragonfruit/types";
+import { Table } from "@dragonfruit/ui";
 // components
 import { ImportExportSettingsLoader } from "@/components/ui/loader/settings/import-and-export";
 // constants

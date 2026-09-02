@@ -6,7 +6,7 @@
 
 import React from "react";
 import { observer } from "mobx-react";
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // components
 import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 // layouts

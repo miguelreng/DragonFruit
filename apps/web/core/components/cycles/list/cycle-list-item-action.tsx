@@ -11,15 +11,15 @@ import { useParams, usePathname, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { Eye, ArrowRight, CalendarDays } from "@/components/icons/lucide-shim";
 // plane imports
-import { EUserPermissions, EUserPermissionsLevel, IS_FAVORITE_MENU_OPEN } from "@plane/constants";
-import { useLocalStorage } from "@plane/hooks";
-import { useTranslation } from "@plane/i18n";
+import { EUserPermissions, EUserPermissionsLevel, IS_FAVORITE_MENU_OPEN } from "@dragonfruit/constants";
+import { useLocalStorage } from "@dragonfruit/hooks";
+import { useTranslation } from "@dragonfruit/i18n";
 import { TransferIcon, WorkItemsIcon, MembersPropertyIcon } from "@/components/icons/propel-shim";
-import { setPromiseToast } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { ICycle, TCycleGroups } from "@plane/types";
-import { Avatar, AvatarGroup, FavoriteStar } from "@plane/ui";
-import { getDate, getFileURL, generateQueryParams } from "@plane/utils";
+import { setPromiseToast } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { ICycle, TCycleGroups } from "@dragonfruit/types";
+import { Avatar, AvatarGroup, FavoriteStar } from "@dragonfruit/ui";
+import { getDate, getFileURL, generateQueryParams } from "@dragonfruit/utils";
 // components
 import { DateRangeDropdown } from "@/components/dropdowns/date-range";
 import { ButtonAvatars } from "@/components/dropdowns/member/avatar";

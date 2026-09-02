@@ -17,12 +17,12 @@ import {
 } from "@/components/icons/lucide-shim";
 import { observer } from "mobx-react";
 import Link from "next/link";
-import { Avatar } from "@plane/ui";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TBookmarkCommentActor, TProjectBookmark, TProjectBookmarkComment } from "@plane/types";
-import { CustomMenu, EModalWidth, ModalCore } from "@plane/ui";
-import { calculateTimeAgo, renderFormattedDate } from "@plane/utils";
+import { Avatar } from "@dragonfruit/ui";
+import { Button } from "@dragonfruit/propel/button";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import type { TBookmarkCommentActor, TProjectBookmark, TProjectBookmarkComment } from "@dragonfruit/types";
+import { CustomMenu, EModalWidth, ModalCore } from "@dragonfruit/ui";
+import { calculateTimeAgo, renderFormattedDate } from "@dragonfruit/utils";
 import { useBookmark } from "@/hooks/store/use-bookmark";
 import { useUser } from "@/hooks/store/user";
 import {
@@ -34,7 +34,7 @@ import {
   normalizeTags,
 } from "./helpers";
 import { SuggestedTagChips } from "./suggested-tag-chips";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton } from "@dragonfruit/propel/icon-button";
 
 type DetailIconComponent = ComponentType<{
   className?: string;

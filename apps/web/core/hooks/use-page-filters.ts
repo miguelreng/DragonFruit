@@ -6,7 +6,7 @@
 
 import { useCallback, useMemo } from "react";
 // plane editor
-import type { TEditorFontSize, TEditorFontStyle } from "@plane/editor";
+import type { TEditorFontSize, TEditorFontStyle } from "@dragonfruit/editor";
 import { normalizeDocFontStyle } from "@/helpers/doc-font";
 // hooks
 import useLocalStorage from "@/hooks/use-local-storage";

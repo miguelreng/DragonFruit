@@ -9,14 +9,14 @@ import { observer } from "mobx-react";
 import Link from "next/link";
 import { ChevronRight, MoveDiagonal, Pin } from "@/components/icons/lucide-shim";
 // plane imports
-import { useTranslation } from "@plane/i18n";
+import { useTranslation } from "@dragonfruit/i18n";
 import { CenterPanelIcon, CopyLinkIcon, FullScreenPanelIcon, SidePanelIcon } from "@/components/icons/propel-shim";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { TNameDescriptionLoader } from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
-import { CustomSelect, FavoriteStar } from "@plane/ui";
-import { copyUrlToClipboard, generateWorkItemLink } from "@plane/utils";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { TNameDescriptionLoader } from "@dragonfruit/types";
+import { EIssuesStoreType } from "@dragonfruit/types";
+import { CustomSelect, FavoriteStar } from "@dragonfruit/ui";
+import { copyUrlToClipboard, generateWorkItemLink } from "@dragonfruit/utils";
 // hooks
 import { useFavorite } from "@/hooks/store/use-favorite";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
@@ -27,7 +27,7 @@ import { usePlatformOS } from "@/hooks/use-platform-os";
 // local imports
 import { WorkItemDetailQuickActions } from "../issue-layouts/quick-action-dropdowns";
 import { NameDescriptionUpdateStatus } from "../issue-update-status";
-import { IconButton, getIconButtonStyling } from "@plane/propel/icon-button";
+import { IconButton, getIconButtonStyling } from "@dragonfruit/propel/icon-button";
 
 export type TPeekModes = "side-peek" | "modal" | "full-screen";
 

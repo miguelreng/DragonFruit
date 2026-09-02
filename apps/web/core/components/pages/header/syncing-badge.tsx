@@ -6,8 +6,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { CloudOff, Dot } from "@/components/icons/lucide-shim";
-import { Tooltip } from "@plane/propel/tooltip";
-import { Badge } from "@plane/propel/badge";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import { Badge } from "@dragonfruit/propel/badge";
 
 type Props = {
   syncStatus: "syncing" | "synced" | "error";

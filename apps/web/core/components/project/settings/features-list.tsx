@@ -6,10 +6,10 @@
 
 import { observer } from "mobx-react";
 // plane imports
-import { useTranslation } from "@plane/i18n";
-import { setPromiseToast } from "@plane/propel/toast";
-import { Tooltip } from "@plane/propel/tooltip";
-import type { IProject } from "@plane/types";
+import { useTranslation } from "@dragonfruit/i18n";
+import { setPromiseToast } from "@dragonfruit/propel/toast";
+import { Tooltip } from "@dragonfruit/propel/tooltip";
+import type { IProject } from "@dragonfruit/types";
 import { IntakeIcon, PageIcon, ViewsIcon } from "@/components/icons/propel-shim";
 // components
 import { SettingsBoxedControlItem } from "@/components/settings/boxed-control-item";

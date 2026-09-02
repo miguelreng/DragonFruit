@@ -7,8 +7,8 @@
 import { useState } from "react";
 import useSWR from "swr";
 // plane imports
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { cn } from "@plane/utils";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
+import { cn } from "@dragonfruit/utils";
 // services
 import { AgentService, type TAgentDraftKind, type TAgentRun, type TAgentToolCall } from "@/services/agent.service";
 

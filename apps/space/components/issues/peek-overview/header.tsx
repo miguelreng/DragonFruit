@@ -9,8 +9,8 @@ import { observer } from "mobx-react";
 import { ArrowRight as MoveRight } from "@solar-icons/react/ssr";
 import { Listbox, Transition } from "@headlessui/react";
 // ui
-import { LinkIcon, CenterPanelIcon, FullScreenPanelIcon, SidePanelIcon } from "@plane/propel/icons";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { LinkIcon, CenterPanelIcon, FullScreenPanelIcon, SidePanelIcon } from "@dragonfruit/propel/icons";
+import { TOAST_TYPE, setToast } from "@dragonfruit/propel/toast";
 // helpers
 import { copyTextToClipboard } from "@/helpers/string.helper";
 // hooks

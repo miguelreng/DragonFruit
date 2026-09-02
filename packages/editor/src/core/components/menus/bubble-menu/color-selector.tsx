@@ -5,11 +5,11 @@
  */
 
 import type { Editor } from "@tiptap/react";
-import { IconButton } from "@plane/propel/icon-button";
-import { ALargeSmall, Ban } from "@plane/icons";
+import { IconButton } from "@dragonfruit/propel/icon-button";
+import { ALargeSmall, Ban } from "@dragonfruit/icons";
 import { useMemo } from "react";
 // plane utils
-import { cn } from "@plane/utils";
+import { cn } from "@dragonfruit/utils";
 // constants
 import { COLORS_LIST } from "@/constants/common";
 // local imports
